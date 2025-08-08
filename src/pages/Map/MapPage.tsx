@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, useMap, LayersControl, GeoJSON, Marker, Popup } from 'react-leaflet';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +12,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import DRC_CONGO from '@/pages/MapJSON/DRC_CONGO.json';
-import {getAllRegions} from '@/api';
+import { getAllRegions } from '@/api';
 import './Map.css';
 
 // Fix Leaflet default marker icon
@@ -39,13 +41,13 @@ interface Region {
 }
 
 // Component to handle map interactions
-const MapController = () => {
+const MapController: React.FC = () => {
   const map = useMap();
 
   useEffect(() => {
-    // Set max bounds to DRC coordinates
+    // Set max bounds to DRC-ish bounding box
     const southWest = L.latLng(-13.5, 12.0);
-    const northEast = L.latLng(5.5,42.5);
+    const northEast = L.latLng(5.5, 31.5);
     const bounds = L.latLngBounds(southWest, northEast);
     map.setMaxBounds(bounds);
     map.setMinZoom(5);
@@ -96,9 +98,10 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
 
   const style = (feature: any): L.PathOptions => ({
     weight: 1,
-    color: '#333',
-    fillColor: feature?.properties?._fillColour ?? '#cccccc',
-    fillOpacity: 0.75,
+    color: '#6fb7ff', // subtle neon stroke
+    className: 'province-stroke',
+    fillColor: feature?.properties?._fillColour ?? '#2a3650',
+    fillOpacity: 0.78,
   });
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
@@ -115,53 +118,60 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
       className: 'region-label',
       html: `<div>${name}</div>`,
       iconSize: [100, 40],
-      iconAnchor: [50, 20]
+      iconAnchor: [50, 20],
     });
-    L.marker(center, { icon: label, interactive: false }).addTo(map);
+    const labelMarker = L.marker(center, { icon: label, interactive: false }).addTo(map);
+    // Attach marker reference so we can animate it on province hover
+    (layer as any)._labelMarker = labelMarker;
 
     // Create popup content with summary and Ask More button
     const popupContent = `
       <div class="region-popup">
-        <h3 class="text-xl font-semibold mb-2">${name}</h3>
+        <h3 class="rp-title">${name}</h3>
         ${summary ? `
-          <p class="text-gray-600 mb-4 leading-relaxed">${summary}</p>
+          <div class="summary"><p class="rp-body">${summary}</p></div>
         ` : ''}
-        <div class="flex flex-col gap-3">
+        <div class="cta">
           <button 
-            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+            class="rp-btn"
             onclick="window.openRegionChat('${name}', '${regionId}', ${JSON.stringify(summary)}); window.closeRegionPopup && window.closeRegionPopup();"
           >
-            <div class="flex items-center justify-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-              </svg>
-              <span>Ask About This Region</span>
-            </div>
+            <svg class="rp-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            </svg>
+            Ask About This Region
           </button>
-          <div class="text-xs text-gray-500 text-center">
-            Click to start a conversation about ${name}
-          </div>
+          <div class="hint">Click to start a conversation about ${name}</div>
         </div>
       </div>
     `;
 
-    // Bind popup to layer
-    layer.bindPopup(popupContent);
+    // Bind popup to layer with custom class
+    (layer as L.Path).bindPopup(popupContent, { className: 'neo-popup', maxWidth: 360, autoPanPadding: [40, 40] });
 
     layer.on({
       mouseover: (e: any) => {
-        e.target.setStyle({ weight: 2, fillOpacity: 0.9 });
+        e.target.setStyle({ weight: 2, fillOpacity: 0.88, color: '#8fd4ff' });
+
+        // Animate the label when province is hovered
+        const lm: L.Marker | undefined = (e.target as any)._labelMarker;
+        const el = lm?.getElement?.();
+        if (el) el.classList.add('is-hovered');
       },
       mouseout: (e: any) => {
         if (geoJsonLayerRef.current) {
           geoJsonLayerRef.current.resetStyle(e.target);
         }
+        // Remove label hover animation
+        const lm: L.Marker | undefined = (e.target as any)._labelMarker;
+        const el = lm?.getElement?.();
+        if (el) el.classList.remove('is-hovered');
       },
       click: (e: any) => {
         const bounds = e.target.getBounds();
         map.fitBounds(bounds, {
           padding: [50, 50],
-          maxZoom: 18
+          maxZoom: 10
         });
         e.target.openPopup();
       }
@@ -227,7 +237,7 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
       {maskData && (
         <GeoJSON
           data={maskData}
-          style={{ fillColor: '#f0f2f5', color: '#f0f2f5', weight: 0, fillOpacity: 1 }}
+          style={{ fillColor: '#0b1526', color: '#0b1526', weight: 0, fillOpacity: 1 }}
           interactive={false}
         />
       )}
@@ -249,25 +259,26 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
                 }
               }}
             >
-              <Popup>
+              <Popup className="neo-popup" maxWidth={360}>
                 <div className="region-popup">
-                  <h3 className="text-xl font-semibold mb-3">{region.region_name}</h3>
+                  <h3 className="rp-title">{region.region_name}</h3>
                   {region.summary && (
-                    <div className="max-h-[200px] overflow-y-auto">
-                      <p className="text-gray-600 mb-5 text-base leading-relaxed">
-                        {region.summary}
-                      </p>
+                    <div className="summary">
+                      <p className="rp-body">{region.summary}</p>
                     </div>
                   )}
-                  <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg text-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-                    onClick={() => {
-                      onProvinceClick(region.region_name, region.region_id, region.summary);
-                      try { map.closePopup(); } catch {}
-                    }}
-                  >
-                    Ask More
-                  </Button>
+                  <div className="cta">
+                    <Button
+                      className="rp-btn-react"
+                      onClick={() => {
+                        onProvinceClick(region.region_name, region.region_id, region.summary);
+                        try { map.closePopup(); } catch {}
+                      }}
+                    >
+                      Ask More
+                    </Button>
+                    <div className="hint">Dive deeper into this region</div>
+                  </div>
                 </div>
               </Popup>
             </Marker>
@@ -279,7 +290,7 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
   );
 };
 
-const MapPage:React.FC = () => {
+const MapPage: React.FC = () => {
   const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -332,7 +343,7 @@ const MapPage:React.FC = () => {
 
   return (
     <div className="flex h-screen">
-      <div className={`flex-1 relative ${isChatOpen ? 'w-2/3' : 'w-full'}`}>
+      <div className={`flex-1 relative ${isChatOpen ? 'w-2/3' : 'w-full'} map-root`}>
         <MapContainer
           center={[-2.5, 23.5] as L.LatLngExpression}
           zoom={5}
@@ -349,21 +360,29 @@ const MapPage:React.FC = () => {
         >
           <MapController />
           <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="OpenStreetMap">
+            <LayersControl.BaseLayer checked name="Dark Matter">
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; CARTO & OpenStreetMap contributors'
+                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="OpenStreetMap">
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='&copy; OpenStreetMap contributors'
                 bounds={[[-13.5, 12.0], [5.5, 31.5]]}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satellite">
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                attribution='&copy; <a href="https://www.esri.com">Esri</a>'
+                attribution='&copy; Esri'
                 bounds={[[-13.5, 12.0], [5.5, 31.5]]}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
+
           {/* DRC provinces colored layer */}
           <DRCProvincesLayer onProvinceClick={handleProvinceClick} />
         </MapContainer>

@@ -31,11 +31,11 @@ const CTA: React.FC = () => {
             </p>
           </div>
           <div className="flex justify-center mt-8">
-            <button
+            {/* <button
               className="bg-[#6C3DF4] hover:bg-[#4B1E9B] text-white font-semibold px-8 py-3 rounded-full shadow-md transition"
             >
               Ask me more
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
