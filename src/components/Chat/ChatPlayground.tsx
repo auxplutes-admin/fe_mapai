@@ -168,16 +168,18 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId , sessionId })
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] bg-white">
+    <div className="flex flex-col h-[calc(100vh-100px)] bg-gradient-to-b from-white to-indigo-50/40">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="p-6 space-y-6">
             {/* Welcome Message */}
             <div className="text-center">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
+                <MessageSquare className="w-7 h-7 text-indigo-600" />
+              </div>
               <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                Welcome! How can I help you?
+                How can I help you?
               </h4>
               <p className="text-gray-600 text-sm mb-6">
                 Ask me anything about this location
@@ -195,20 +197,20 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId , sessionId })
               >
                 <div className="flex items-start gap-3 max-w-[85%]">
                   {message.sender === 'ai' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   )}
                   <div
-                    className={`rounded-2xl p-4 ${
+                    className={`rounded-2xl p-4 shadow ${
                       message.sender === 'user'
-                        ? 'bg-blue-600 text-white ml-auto'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white ml-auto'
+                        : 'bg-gradient-to-br from-indigo-50 to-blue-50 text-gray-800 border border-indigo-100'
                     }`}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
                     <p className={`text-xs mt-2 ${
-                      message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      message.sender === 'user' ? 'text-blue-100' : 'text-indigo-600/60'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { 
                         hour: '2-digit', 
@@ -217,7 +219,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId , sessionId })
                     </p>
                   </div>
                   {message.sender === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <span className="text-white text-sm font-medium">U</span>
                     </div>
                   )}
@@ -227,10 +229,10 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId , sessionId })
             {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 flex items-center justify-center">
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-gray-100 rounded-2xl p-4">
+                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-4 border border-indigo-100">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
@@ -246,30 +248,31 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId , sessionId })
       </div>
 
       {/* Input Area */}
-      <div className="p-2 border-t bg-gray-50">
+      <div className="p-3 border-t bg-white/70">
         <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message here..."
-              className="resize-none pr-12 min-h-[44px] max-h-32 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              rows={4}
-            />
-            <Button
-              onClick={() => handleSendMessage()}
-              disabled={isLoading || !input.trim()}
-              size="lg"
-              className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700"
-            >
-              <Send className="w-6 h-6" />
-            </Button>
+          <div className="flex-1">
+            <div className="relative rounded-xl border border-indigo-200 bg-white shadow-sm transition focus-within:ring-2 focus-within:ring-indigo-400/30 focus-within:border-indigo-300">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message here..."
+                className="resize-none pr-12 pl-4 py-3 min-h-[48px] max-h-32 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                rows={4}
+              />
+              <Button
+                onClick={() => handleSendMessage()}
+                disabled={isLoading || !input.trim()}
+                className="absolute right-2 bottom-2 h-9 w-9 p-0 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

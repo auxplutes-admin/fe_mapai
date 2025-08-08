@@ -38,50 +38,64 @@ const SessionsPage = () => {
   const handleViewChat = (session: Session) => {
     setSelectedSession(session)
     setIsChatOpen(true)
-    // Store the session ID in localStorage when viewing
     localStorage.setItem('chat_session_id', session.session_id)
   }
 
   const handleCloseChat = () => {
     setIsChatOpen(false)
     setSelectedSession(null)
-    // Remove the session ID from localStorage when closing
     localStorage.removeItem('chat_session_id')
   }
 
   if (loading) {
-    return <div className="p-4">Loading sessions...</div>
+    return <div className="flex items-center justify-center h-screen">
+      <div className="animate-pulse text-lg">Loading sessions...</div>
+    </div>
   }
 
   if (error) {
-    return <div className="p-4 text-red-500">{error}</div>
+    return <div className="flex items-center justify-center h-screen">
+      <div className="text-lg text-red-500">{error}</div>
+    </div>
   }
 
   return (
-    <div className="p-4">
+    <div className="mx-auto p-6">
       <div className="grid gap-4">
         {sessions.map((session) => (
           <div 
             key={session.session_id}
-            className="bg-white p-4 rounded-lg shadow"
+            className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200"
           >
             <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Session ID: {session.session_id}</p>
-                {/* <p className="text-sm text-gray-500">
-                  Created: {new Date(session.created_at).toLocaleString()}
-                </p> */}
-                {session.region_name && (
-                  <p className="text-sm text-gray-700">
-                    Region: {session.region_name}
-                  </p>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {session.region_name ? (
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {session.region_name}
+                    </h3>
+                  ) : (
+                    <h3 className="text-lg font-semibold text-gray-500">
+                      General Session
+                    </h3>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">
+                  {new Date(session.created_at).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
               </div>
               <Button
                 onClick={() => handleViewChat(session)}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-gray-100"
               >
                 <MessageSquare className="w-4 h-4" />
                 View Chat
@@ -95,14 +109,15 @@ const SessionsPage = () => {
       <Sheet open={isChatOpen} onOpenChange={(open) => !open && handleCloseChat()}>
         <SheetContent className="sm:max-w-[1200px] h-full p-0">
           <div className="flex flex-col h-full">
-            <div className="p-4 border-b flex justify-between items-center">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
               <h2 className="text-xl font-semibold">
-                Chat History - {selectedSession?.region_name}
+                {selectedSession?.region_name || 'General Session'}
               </h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleCloseChat}
+                className="hover:bg-gray-200"
               >
                 Close
               </Button>

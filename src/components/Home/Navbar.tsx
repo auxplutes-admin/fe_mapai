@@ -47,24 +47,24 @@ export const Navbar = () => {
                                     {item.href ? (
                                         <>
                                             <NavigationMenuLink>
-                                                <Button variant="ghost">{item.title}</Button>
+                                                <Button variant="ghost" className="text-base md:text-lg">{item.title}</Button>
                                             </NavigationMenuLink>
                                         </>
                                     ) : (
                                         <>
-                                            <NavigationMenuTrigger className="font-medium text-sm">
+                                            <NavigationMenuTrigger className="font-medium text-base md:text-lg">
                                                 {item.title}
                                             </NavigationMenuTrigger>
                                             <NavigationMenuContent className="!w-[450px] p-4">
                                                 <div className="flex flex-col lg:grid grid-cols-2 gap-4">
                                                     <div className="flex flex-col h-full justify-between">
                                                         <div className="flex flex-col">
-                                                            <p className="text-base">{item.title}</p>
-                                                            <p className="text-muted-foreground text-sm">
+                                                            <p className="text-lg md:text-xl">{item.title}</p>
+                                                            <p className="text-muted-foreground text-sm md:text-base">
                                                                 {item.description}
                                                             </p>
                                                         </div>
-                                                        <Button size="sm" className="mt-10">
+                                                        <Button size="sm" className="mt-10 text-base">
                                                             Book a call today
                                                         </Button>
                                                     </div>
@@ -81,6 +81,7 @@ export const Navbar = () => {
                     {isLoggedIn() ? (
                         <Button 
                             onClick={() => handleAuthNavigation('/dashboard')}
+                            className="text-base md:text-lg"
                         >
                             Dashboard
                         </Button>
@@ -89,11 +90,13 @@ export const Navbar = () => {
                             <Button 
                                 variant="outline"
                                 onClick={() => handleAuthNavigation('/signin')}
+                                className="text-base md:text-lg"
                             >
                                 Sign in
                             </Button>
                             <Button
                                 onClick={() => handleAuthNavigation('/login')}
+                                className="text-base md:text-lg"
                             >
                                 Login
                             </Button>
@@ -114,11 +117,11 @@ export const Navbar = () => {
                                                 to={item.href}
                                                 className="flex justify-between items-center"
                                             >
-                                                <span className="text-lg">{item.title}</span>
-                                                <MoveRight className="w-4 h-4 stroke-1 text-muted-foreground" />
+                                                <span className="text-xl md:text-2xl">{item.title}</span>
+                                                <MoveRight className="w-5 h-5 stroke-1 text-muted-foreground" />
                                             </Link>
                                         ) : (
-                                            <p className="text-lg">{item.title}</p>
+                                            <p className="text-xl md:text-2xl">{item.title}</p>
                                         )}
                                     </div>
                                 </div>
