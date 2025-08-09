@@ -124,9 +124,9 @@ const DetailModal: React.FC<{
     if (!open) return null;
 
     return (
-      <div className="detail-backdrop">
+      <div className="detail-backdrop" style={{ background: 'rgba(0,0,0,0.5)' }}>
         <div className={`detail-card ${showChat ? 'is-chat' : ''}`}>
-          {/* Left: mini DRC map */}
+          {/* Left */}
           <div className="detail-left" style={{ background: PANEL }}>
             <MapContainer
               center={[-2.5, 23.5] as LatLngExpression}
@@ -148,16 +148,11 @@ const DetailModal: React.FC<{
                 <button className="detail-btn secondary" onClick={onBack}>Back</button>
               </div>
             </div>
-
             {!showChat ? (
               <>
-                <div className="detail-body">
-                  {summary ? summary : 'No summary available for this region yet.'}
-                </div>
+                <div className="detail-body">{summary || 'No summary available for this region yet.'}</div>
                 <div className="detail-footer">
-                  <button className="detail-btn detail-btn-primary" onClick={onAskMore}>
-                    Ask More
-                  </button>
+                  <button className="detail-btn detail-btn-primary" onClick={onAskMore}>Ask More</button>
                 </div>
               </>
             ) : (

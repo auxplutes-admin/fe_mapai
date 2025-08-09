@@ -33,30 +33,31 @@
 }
 
 /* ----- Detail modal ----- */
-/* Slightly translucent backdrop so the map glows through a bit */
+/* Full screen overlay - no dialog appearance */
 .detail-backdrop {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1100;
-  background: rgba(69, 2, 117, 0.92);  /* transparent theme */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent;  /* No backdrop */
+  display: block;
 }
 
-/* Split card */
+/* Full screen card - no dialog styling */
 .detail-card {
-  width: 1320px;                         /* wider */
-  max-width: calc(100vw - 24px);         /* tighter margins to the edges */
-  max-height: calc(100vh - 24px); 
-  border-radius: 18px;
-  background: var(--panel);
+  width: 100vw;                          /* Full viewport width */
+  height: 100vh;                         /* Full viewport height */
+  border-radius: 0;                      /* No rounded corners */
   color: #fff;
-  box-shadow: 0 24px 70px rgba(0,0,0,0.55);
-  overflow: hidden;                /* keep internal scrollbars inside */
+  box-shadow: none;                      /* No shadow */
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr 1.6fr; /* give the text more room */
-  position: relative;
+  grid-template-columns: 1fr 1.6fr;     /* give the text more room */
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* Subtle vertical divider between left/right panes */
@@ -67,7 +68,6 @@
   bottom: 0;
   left: 38.5%;          /* aligns with the 1fr / 1.6fr split */
   width: 1px;
-  background: rgba(255,255,255,0.10);
 }
 
 /* Expanded when chat is shown — keep similar proportion */
@@ -84,10 +84,10 @@
   background: var(--panel);
 }
 
-/* Bigger mini map (your values) */
+/* Full screen mini map */
 .mini-map {
-  height: 620px;   /* was 320px */
-  width: 660px;    /* was 360px */
+  height: 80vh;    /* 80% of viewport height */
+  width: 90%;      /* 90% of left pane width */
   border-radius: 12px;
   overflow: hidden;
 }
@@ -96,11 +96,11 @@
 .detail-right {
   display: flex;                 /* <-- was grid */
   flex-direction: column;
-  padding: 22px 24px 18px;
-  gap: 10px;
+  padding: 32px 40px 32px;       /* Increased padding for full screen */
+  gap: 16px;                     /* Increased gap */
   min-width: 0;                  /* prevents overflow in grid cells */
   min-height: 0;                 /* enables child overflow scrolling */
-  background: var(--panel);
+  /* background: var(--panel); */
 }
 
 /* Header row in right pane */
@@ -112,7 +112,7 @@
 }
 
 .detail-title {
-  font-size: 1.35rem;
+  font-size: 2rem;               /* Larger title for full screen */
   font-weight: 700;
 }
 
@@ -150,7 +150,8 @@
 
 .detail-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  padding: 10px 14px; border-radius: 12px; font-weight: 600;
+  padding: 12px 20px; border-radius: 12px; font-weight: 600;
+  font-size: 1.1rem;              /* Larger font for full screen */
   color: #fff; border: 1px solid rgba(255,255,255,0.18);
   background: var(--theme);
   cursor: pointer;

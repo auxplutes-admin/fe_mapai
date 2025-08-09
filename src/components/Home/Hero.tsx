@@ -10,13 +10,13 @@ const handleClick = () => {
 export const Hero = () => (
   <div className="relative w-full flex items-center justify-center pt-24">
     {/* Main Content */}
-    <div className="container mx-auto max-w-7xl px-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-14 md:gap-16 items-center text-white min-h-full">
+    <div className="mx-auto max-w-7xl px-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center text-white">
         {/* Left Column: Text */}
         <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left space-y-6">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight">
-            <span className="block">Welcome,</span>
-            <span className="block">To the AI-verse of DRC mining</span>
+          <h1 className="text-xl md:text-3xl lg:text-4xl font-bold leading-tight">
+            <span className="block"> Welcome to 
+              <br /> the AI-verse of DRC mining</span>
           </h1>
 
           <p className="text-base md:text-lg text-white/80 max-w-xl mx-auto md:mx-0">

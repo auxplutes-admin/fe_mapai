@@ -38,8 +38,8 @@ export const Navbar = () => {
     };
 
     return (
-        <header className="w-full z-50 fixed top-0 left-0 ">
-            <div className=" relative mx-auto h-20 flex gap-4 flex-row lg:grid lg:grid-cols-3 items-center">
+        <header className="w-full z-50 fixed top-0 left-0 bg-transparent">
+            <div className="mx-auto h-20 flex gap-4 flex-row lg:grid lg:grid-cols-3 items-center">
                 {/* Logo Section */}
                 <div className="flex flex-col items-center gap-2">
                     <img
