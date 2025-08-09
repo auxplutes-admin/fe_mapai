@@ -1,19 +1,30 @@
-
-
+// MapPage.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, LayersControl, GeoJSON, Marker, Popup } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  useMap,
+  LayersControl,
+  GeoJSON,
+  Marker,
+} from 'react-leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import 'leaflet/dist/leaflet.css';
 import ChatPlayground from '../../components/Chat/ChatPlayground';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import L from 'leaflet';
+import L, { LatLngExpression, PathOptions } from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import DRC_CONGO from '@/pages/MapJSON/DRC_CONGO.json';
 import { getAllRegions } from '@/api';
 import './Map.css';
+// NOTE: ideally serve this from /public and import via a relative URL
+import drcFlag from '@/assets/Flag-of-Congo-09.png';
+
+// ---------- THEME ----------
+const THEME = '#450275';       // global purple (backdrop + accents)
+const PANEL = '#2e014a';       // panel surface (split card background)
+const BORDER_GREY = '#9AA0A6'; // province border
 
 // Fix Leaflet default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,206 +34,282 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-interface MapPoint {
-  id: string;
-  position: [number, number];
-  title: string;
-  summary?: string;
-}
-
 interface Region {
   id: number;
   created_at: number;
-  region_name: string;
+  region_name: string;     // e.g., "Kimpangu"
   region_id: string;
+  province_name?: string;  // e.g., "Kongo-Central"
   lat?: string;
   long?: string;
   summary?: string;
 }
 
-// Component to handle map interactions
+/* ---------------- Map controller: bounds + min zoom ---------------- */
 const MapController: React.FC = () => {
   const map = useMap();
-
   useEffect(() => {
-    // Set max bounds to DRC-ish bounding box
     const southWest = L.latLng(-13.5, 12.0);
     const northEast = L.latLng(5.5, 31.5);
-    const bounds = L.latLngBounds(southWest, northEast);
-    map.setMaxBounds(bounds);
+    map.setMaxBounds(L.latLngBounds(southWest, northEast));
     map.setMinZoom(5);
   }, [map]);
-
   return null;
 };
 
-// Provinces layer for Democratic Republic of the Congo (DRC)
-const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: string, summary?: string) => void }> = ({ onProvinceClick }) => {
+/* ---------------- Mini map (white country, selected province purple) ---------------- */
+const MiniDRC: React.FC<{ selectedName?: string }> = ({ selectedName }) => {
+  const map = useMap();
+
+  const style = (feature: any): PathOptions => {
+    // Use adm1_name by default (works with your current data)
+    const name =
+      feature?.properties?.adm1_name ??
+      feature?.properties?.NAME_1 ??
+      feature?.properties?.name ??
+      '';
+    const isSel =
+      selectedName &&
+      name &&
+      name.toLowerCase() === selectedName.toLowerCase();
+    return {
+      weight: 1,
+      color: '#d9cfee',
+      fillColor: isSel ? THEME : '#ffffff',
+      fillOpacity: 1,
+    };
+  };
+
+  useEffect(() => {
+    const southWest = L.latLng(-13.5, 12.0);
+    const northEast = L.latLng(5.5, 31.5);
+    map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [10, 10] });
+    // lock the mini map
+    map.dragging.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+    map.scrollWheelZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    // hide controls
+    (map as any)._controlContainer?.classList.add('hidden');
+  }, [map]);
+
+  return <GeoJSON data={DRC_CONGO as any} style={style} />;
+};
+
+/* ---------------- Detail Modal (title vs. highlight) ---------------- */
+const DetailModal: React.FC<{
+  open: boolean;
+  title?: string;                // e.g., "Kimpangu - Kongo-Central"
+  selectedProvince?: string;     // the province to highlight in MiniDRC
+  summary?: string;
+  showChat: boolean;
+  regionId?: string;
+  sessionId?: string;
+  onBack: () => void;
+  onAskMore: () => void;
+}> = ({
+  open,
+  title,
+  selectedProvince,
+  summary,
+  showChat,
+  regionId,
+  sessionId,
+  onBack,
+  onAskMore,
+}) => {
+    if (!open) return null;
+
+    return (
+      <div className="detail-backdrop">
+        <div className={`detail-card ${showChat ? 'is-chat' : ''}`}>
+          {/* Left: mini DRC map */}
+          <div className="detail-left" style={{ background: PANEL }}>
+            <MapContainer
+              center={[-2.5, 23.5] as LatLngExpression}
+              zoom={5}
+              className="mini-map"
+              zoomControl={false}
+              attributionControl={false}
+              style={{ background: PANEL }}
+            >
+              <MiniDRC selectedName={selectedProvince} />
+            </MapContainer>
+          </div>
+
+          {/* Right */}
+          <div className="detail-right" style={{ background: PANEL }}>
+            <div className="detail-header">
+              <div className="detail-title">{title}</div>
+              <div className="detail-actions">
+                <button className="detail-btn secondary" onClick={onBack}>Back</button>
+              </div>
+            </div>
+
+            {!showChat ? (
+              <>
+                <div className="detail-body">
+                  {summary ? summary : 'No summary available for this region yet.'}
+                </div>
+                <div className="detail-footer">
+                  <button className="detail-btn detail-btn-primary" onClick={onAskMore}>
+                    Ask More
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: 12 }}>
+                <ChatPlayground regionId={regionId} sessionId={sessionId} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+/* ---------------- Provinces Layer ---------------- */
+const DRCProvincesLayer: React.FC<{
+  onOpenDetail: (
+    title: string,
+    selectedProvince: string,
+    regionId: string,
+    summary?: string
+  ) => void;
+}> = ({ onOpenDetail }) => {
   const map = useMap();
   const [data, setData] = useState<any | null>(null);
   const [regions, setRegions] = useState<Region[]>([]);
   const geoJsonLayerRef = useRef<L.GeoJSON<any> | null>(null);
 
   useEffect(() => {
-    const fetchRegions = async () => {
+    (async () => {
       try {
-        const regionsData = await getAllRegions();
-        setRegions(regionsData);
-      } catch (error) {
-        console.error('Error fetching regions:', error);
+        const rs = await getAllRegions();
+        setRegions(rs);
+      } catch (e) {
+        console.error('Error fetching regions:', e);
       }
-    };
-    fetchRegions();
+    })();
   }, []);
 
-  // Distinct color palette (30+ colors)
-  const palette = useMemo(
-    () => [
-      '#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69',
-      '#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f','#1f78b4','#33a02c',
-      '#e31a1c','#ff7f00','#6a3d9a','#a6cee3','#b2df8a','#fb9a99','#fdbf6f',
-      '#cab2d6','#ffff99','#b15928','#7fc97f','#fdc086','#ffff99','#386cb0',
-      '#f0027f','#bf5b17'
-    ],
-    []
-  );
+  // greyscale palette
+  const greys = useMemo(() => {
+    const steps = 30;
+    const arr: string[] = [];
+    for (let i = 0; i < steps; i++) {
+      const v = 245 - Math.round((i / (steps - 1)) * 120); // 245 → 125
+      arr.push(`rgb(${v},${v},${v})`);
+    }
+    return arr;
+  }, []);
 
   useEffect(() => {
-    // attach palette color deterministically
     const geojson = DRC_CONGO as any;
     geojson.features.forEach((f: any, i: number) => {
-      f.properties._fillColour = palette[i % palette.length];
+      f.properties._fillColour = greys[i % greys.length];
     });
     setData(geojson);
-  }, [palette]);
+  }, [greys]);
 
-  const style = (feature: any): L.PathOptions => ({
+  const style = (feature: any): PathOptions => ({
     weight: 1,
-    color: '#6fb7ff', // subtle neon stroke
+    color: BORDER_GREY,
     className: 'province-stroke',
-    fillColor: feature?.properties?._fillColour ?? '#2a3650',
-    fillOpacity: 0.78,
+    fillColor: feature?.properties?._fillColour ?? '#d9d9d9',
+    fillOpacity: 0.9,
   });
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
-    const name = feature?.properties?.adm1_name || 'Province';
+    const provinceName =
+      feature?.properties?.adm1_name ??
+      feature?.properties?.NAME_1 ??
+      feature?.properties?.name ??
+      'Province';
 
-    // Find matching region
-    const region = regions.find(r => r.region_name.toLowerCase() === name.toLowerCase());
-    const regionId = region?.region_id || name.toLowerCase();
+    // find matching region record if any (optional, for summary/regionId)
+    const region = regions.find(
+      (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
+    );
+
+    const regionId = region?.region_id || provinceName.toLowerCase();
     const summary = region?.summary;
 
-    // Create a label for the region
+    // add map label
     const center = (layer as L.Polygon).getBounds().getCenter();
     const label = L.divIcon({
       className: 'region-label',
-      html: `<div>${name}</div>`,
+      html: `<div>${provinceName}</div>`,
       iconSize: [100, 40],
       iconAnchor: [50, 20],
     });
     const labelMarker = L.marker(center, { icon: label, interactive: false }).addTo(map);
-    // Attach marker reference so we can animate it on province hover
     (layer as any)._labelMarker = labelMarker;
 
-    // Create popup content with summary and Ask More button
-    const popupContent = `
-      <div class="region-popup">
-        <h3 class="rp-title">${name}</h3>
-        ${summary ? `
-          <div class="summary"><p class="rp-body">${summary}</p></div>
-        ` : ''}
-        <div class="cta">
-          <button 
-            class="rp-btn"
-            onclick="window.openRegionChat('${name}', '${regionId}', ${JSON.stringify(summary)}); window.closeRegionPopup && window.closeRegionPopup();"
-          >
-            <svg class="rp-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-            </svg>
-            Ask About This Region
-          </button>
-          <div class="hint">Click to start a conversation about ${name}</div>
-        </div>
-      </div>
-    `;
-
-    // Bind popup to layer with custom class
-    (layer as L.Path).bindPopup(popupContent, { className: 'neo-popup', maxWidth: 360, autoPanPadding: [40, 40] });
-
     layer.on({
-      mouseover: (e: any) => {
-        e.target.setStyle({ weight: 2, fillOpacity: 0.88, color: '#8fd4ff' });
-
-        // Animate the label when province is hovered
-        const lm: L.Marker | undefined = (e.target as any)._labelMarker;
-        const el = lm?.getElement?.();
-        if (el) el.classList.add('is-hovered');
-      },
-      mouseout: (e: any) => {
-        if (geoJsonLayerRef.current) {
-          geoJsonLayerRef.current.resetStyle(e.target);
-        }
-        // Remove label hover animation
-        const lm: L.Marker | undefined = (e.target as any)._labelMarker;
-        const el = lm?.getElement?.();
-        if (el) el.classList.remove('is-hovered');
-      },
+      mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
+      mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
       click: (e: any) => {
-        const bounds = e.target.getBounds();
-        map.fitBounds(bounds, {
-          padding: [50, 50],
-          maxZoom: 10
+        // restore all styles
+        (geoJsonLayerRef.current as any)?.setStyle?.((f: any) => ({
+          weight: 1,
+          color: BORDER_GREY,
+          fillColor: f?.properties?._fillColour ?? '#d9d9d9',
+          fillOpacity: 0.9,
+        }));
+        // highlight selected
+        (e.target as any).setStyle({
+          fillColor: THEME,
+          color: BORDER_GREY,
+          weight: 2,
+          fillOpacity: 1,
         });
-        e.target.openPopup();
-      }
+
+        // For polygons, title = province, highlight = province
+        onOpenDetail(
+          provinceName,
+          provinceName,
+          regionId,
+          summary
+        );
+      },
     });
   };
 
+  // fit to DRC on mount
   useEffect(() => {
     if (!data) return;
-    // After data changes and layer mounted, fit bounds
-    const id = setTimeout(() => {
-      if (geoJsonLayerRef.current) {
-        try {
-          const b = geoJsonLayerRef.current.getBounds();
-          if (b && b.isValid()) {
-            map.fitBounds(b, { padding: [20, 20] });
-          }
-        } catch {
-          // ignore
-        }
-      }
+    setTimeout(() => {
+      try {
+        const b = (geoJsonLayerRef.current as any)?.getBounds?.();
+        if (b?.isValid()) map.fitBounds(b, { padding: [20, 20] });
+      } catch { }
     }, 0);
-    return () => clearTimeout(id);
   }, [data, map]);
 
-  // Build a world mask that leaves holes for DRC provinces so only DRC shows
+  // World mask in theme color (hides world outside DRC)
   const maskData = useMemo(() => {
     if (!data) return null;
     const worldRing = [
       [-360, -180],
-      [360, -180], 
+      [360, -180],
       [360, 180],
       [-360, 180],
       [-360, -180],
     ];
     const holes: number[][][] = [];
-
     for (const f of data.features) {
       if (!f?.geometry) continue;
       if (f.geometry.type === 'Polygon') {
-        for (const ring of f.geometry.coordinates) {
-          holes.push([...ring].reverse());
-        }
+        for (const ring of f.geometry.coordinates) holes.push([...ring].reverse());
       } else if (f.geometry.type === 'MultiPolygon') {
         for (const poly of f.geometry.coordinates) {
-          for (const ring of poly) {
-            holes.push([...ring].reverse());
-          }
+          for (const ring of poly) holes.push([...ring].reverse());
         }
       }
     }
-
     return {
       type: 'Feature',
       properties: {},
@@ -237,7 +324,7 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
       {maskData && (
         <GeoJSON
           data={maskData}
-          style={{ fillColor: '#0b1526', color: '#0b1526', weight: 0, fillOpacity: 1 }}
+          style={{ fillColor: THEME, color: THEME, weight: 0, fillOpacity: 1 }}
           interactive={false}
         />
       )}
@@ -247,41 +334,39 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
         style={style}
         onEachFeature={onEachFeature}
       />
-      {regions.map(region => {
+      {/* Region flag markers → open detail modal (locality + province) */}
+      {regions.map((region) => {
         if (region.lat && region.long) {
+          const drcFlagIcon = L.icon({
+            iconUrl: drcFlag,
+            iconSize: [64, 40],
+            iconAnchor: [32, 40],
+            popupAnchor: [0, -10],
+          });
+
+          const provinceName = region.province_name || ''; // REQUIRED in your API now
+          const displayTitle = provinceName
+            ? `${region.region_name} - ${provinceName}`
+            : region.region_name;
+
           return (
-            <Marker 
+            <Marker
               key={region.id}
               position={[parseFloat(region.lat), parseFloat(region.long)]}
+              icon={drcFlagIcon}
               eventHandlers={{
                 click: (e) => {
-                  map.setView(e.latlng, 8);  // Zoom to level 8 when clicking a marker
-                }
+                  // For markers, title = "<locality> - <province>", highlight = province
+                  onOpenDetail(
+                    displayTitle,
+                    provinceName,
+                    region.region_id,
+                    region.summary
+                  );
+                  map.setView(e.latlng, 8);
+                },
               }}
-            >
-              <Popup className="neo-popup" maxWidth={360}>
-                <div className="region-popup">
-                  <h3 className="rp-title">{region.region_name}</h3>
-                  {region.summary && (
-                    <div className="summary">
-                      <p className="rp-body">{region.summary}</p>
-                    </div>
-                  )}
-                  <div className="cta">
-                    <Button
-                      className="rp-btn-react"
-                      onClick={() => {
-                        onProvinceClick(region.region_name, region.region_id, region.summary);
-                        try { map.closePopup(); } catch {}
-                      }}
-                    >
-                      Ask More
-                    </Button>
-                    <div className="hint">Dive deeper into this region</div>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
+            />
           );
         }
         return null;
@@ -290,62 +375,62 @@ const DRCProvincesLayer: React.FC<{ onProvinceClick: (name: string, regionId: st
   );
 };
 
+/* ---------------- Page ---------------- */
 const MapPage: React.FC = () => {
-  const [selectedPoint, setSelectedPoint] = useState<MapPoint | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Initialize session ID from localStorage or create new one
+  // selection + modal state
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [detail, setDetail] = useState<{
+    title?: string;
+    selectedProvince?: string;
+    id?: string;
+    summary?: string;
+  }>({});
+
+  // session init
   useEffect(() => {
-    let storedSessionId = localStorage.getItem('chat_session_id');
-    if (!storedSessionId) {
-      storedSessionId = uuidv4();
-      localStorage.setItem('chat_session_id', storedSessionId);
+    let stored = localStorage.getItem('chat_session_id');
+    if (!stored) {
+      stored = uuidv4();
+      localStorage.setItem('chat_session_id', stored);
     }
-    setSessionId(storedSessionId);
+    setSessionId(stored);
   }, []);
 
-  const handleCloseChat = () => {
-    setIsChatOpen(false);
-    setSelectedPoint(null);
-    // Clear session ID from both state and localStorage
-    setSessionId(null);
-    localStorage.removeItem('chat_session_id');
+  const openDetail = (
+    title: string,
+    selectedProvince: string,
+    regionId: string,
+    summary?: string
+  ) => {
+    setDetail({ title, selectedProvince, id: regionId, summary });
+    setDetailOpen(true);
+    setShowChat(false); // start in summary mode
   };
 
-  // Add this useEffect to handle the popup button click
-  useEffect(() => {
-    // Add the global function to handle popup button click
-    (window as any).openRegionChat = (name: string, regionId: string, summary?: string) => {
-      handleProvinceClick(name, regionId, summary);
-    };
-
-    // Cleanup
-    return () => {
-      delete (window as any).openRegionChat;
-    };
-  }, []);
-
-  const handleProvinceClick = (provinceName: string, regionId: string, summary?: string) => {
-    // Create new session ID when opening chat
+  const openChatInModal = () => {
     const newSessionId = uuidv4();
     localStorage.setItem('chat_session_id', newSessionId);
     setSessionId(newSessionId);
-    
-    setSelectedPoint({
-      id: regionId,
-      position: [0, 0],
-      title: provinceName,
-      summary
-    });
-    setIsChatOpen(true);
+    setShowChat(true); // swap right pane to chat
+  };
+
+  const handleBackToMap = () => {
+    setDetailOpen(false);
+    setShowChat(false);
+    setDetail({});
   };
 
   return (
     <div className="flex h-screen">
-      <div className={`flex-1 relative ${isChatOpen ? 'w-2/3' : 'w-full'} map-root`}>
+      <div className="relative w-full map-root">
+        {/* Top-left hint badge (always visible, sits below +/-) */}
+        <div className="map-hint">Choose an area</div>
+
         <MapContainer
-          center={[-2.5, 23.5] as L.LatLngExpression}
+          center={[-2.5, 23.5] as LatLngExpression}
           zoom={5}
           style={{ height: '100vh', width: '100%' }}
           maxBounds={[[-13.5, 12.0], [5.5, 31.5]]}
@@ -363,53 +448,43 @@ const MapPage: React.FC = () => {
             <LayersControl.BaseLayer checked name="Dark Matter">
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; CARTO & OpenStreetMap contributors'
+                attribution="&copy; CARTO & OpenStreetMap contributors"
                 bounds={[[-13.5, 12.0], [5.5, 31.5]]}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="OpenStreetMap">
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
+                attribution="&copy; OpenStreetMap contributors"
                 bounds={[[-13.5, 12.0], [5.5, 31.5]]}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satellite">
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                attribution='&copy; Esri'
+                attribution="&copy; Esri"
                 bounds={[[-13.5, 12.0], [5.5, 31.5]]}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
 
-          {/* DRC provinces colored layer */}
-          <DRCProvincesLayer onProvinceClick={handleProvinceClick} />
+          {/* Provinces + mask + markers */}
+          <DRCProvincesLayer onOpenDetail={openDetail} />
         </MapContainer>
-      </div>
 
-      {isChatOpen && (
-        <Card className="w-1/3 h-screen flex flex-col rounded-none">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="text-xl font-semibold">
-              Chat - {selectedPoint?.title}
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCloseChat}
-            >
-              Close
-            </Button>
-          </div>
-          <div className="flex-1">
-            <ChatPlayground 
-              regionId={selectedPoint?.id} 
-              sessionId={sessionId || undefined} 
-            />
-          </div>
-        </Card>
-      )}
+        {/* Split-screen modal (summary or chat on the right) */}
+        <DetailModal
+          open={detailOpen}
+          title={detail.title}
+          selectedProvince={detail.selectedProvince}
+          summary={detail.summary}
+          showChat={showChat}
+          regionId={detail.id}
+          sessionId={sessionId || undefined}
+          onBack={handleBackToMap}
+          onAskMore={openChatInModal}
+        />
+      </div>
     </div>
   );
 };
