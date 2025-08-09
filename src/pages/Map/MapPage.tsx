@@ -23,6 +23,7 @@ import drcFlag from '@/assets/Flag-of-Congo-09.png';
 
 // ---------- THEME ----------
 const THEME = '#450275';       // global purple (backdrop + accents)
+const THEME_2 = '#F357A8';      // global Detail map color (backdrop + accents)
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
@@ -75,7 +76,7 @@ const MiniDRC: React.FC<{ selectedName?: string }> = ({ selectedName }) => {
     return {
       weight: 1,
       color: '#d9cfee',
-      fillColor: isSel ? THEME : '#ffffff',
+      fillColor: isSel ? THEME_2 : '#ffffff', // mini map color
       fillOpacity: 1,
     };
   };
@@ -169,6 +170,8 @@ const DetailModal: React.FC<{
       </div>
     );
   };
+
+  
 
 /* ---------------- Provinces Layer ---------------- */
 const DRCProvincesLayer: React.FC<{
@@ -324,7 +327,12 @@ const DRCProvincesLayer: React.FC<{
       {maskData && (
         <GeoJSON
           data={maskData}
-          style={{ fillColor: THEME, color: THEME, weight: 0, fillOpacity: 1 }}
+          style={{ 
+           fillColor: THEME, // Reference gradient
+           //fillColor: 'linear-gradient(90deg, #160041 0%, #450275 50%, #F357A8 100%)', 
+           color: THEME, 
+            weight: 0, 
+            fillOpacity: 1 }}
           interactive={false}
         />
       )}
@@ -424,10 +432,13 @@ const MapPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen ">
       <div className="relative w-full map-root">
         {/* Top-left hint badge (always visible, sits below +/-) */}
-        <div className="map-hint">Choose an area</div>
+        <div className="map-hint mt-50 ml-20" style={{ backgroundColor: '#fccfe6', padding: '12px', borderRadius: '8px' }}>
+          <p className='text-white/90 font-medium text-lg'
+          style={{ color: 'black' }}>Click any region to learn more</p>
+        </div>
 
         <MapContainer
           center={[-2.5, 23.5] as LatLngExpression}

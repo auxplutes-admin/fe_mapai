@@ -21,7 +21,7 @@ const AppRouter = () => {
                 }>
                     <Route path="" element={<Dashboard />} />
                     <Route path="map" element=  {<MapPage />} />
-                    <Route path="sessions" element={<SessionsPage />} />
+                    <Route path="chat/:sessionId" element={<SessionsPage />} />
                 </Route>
             </Routes>
         </>

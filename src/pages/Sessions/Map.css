@@ -1,0 +1,169 @@
+/* THEME */
+:root {
+  --theme: #450275;     /* backdrop + accents */
+  --panel: #2e014a;     /* card surfaces */
+  --panel-alt: #2a0146; /* slight contrast for left side if needed */
+  --border-grey: #9AA0A6;
+}
+
+/* Map container background (still theme) */
+.map-root {
+  position: relative;
+  background: var(--theme);
+}
+
+/* Province boundaries */
+.province-stroke { stroke: var(--border-grey) !important; }
+
+/* ----- Top-left hint pill (always visible, below zoom) ----- */
+.map-hint {
+  position: absolute;
+  top: 56px;            /* sits below +/- */
+  left: 12px;
+  z-index: 1100;        /* above Leaflet controls (which are ~1000) */
+  padding: 8px 14px;
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 999px;
+  user-select: none;
+  backdrop-filter: saturate(120%) blur(2px);
+}
+
+/* ----- Detail modal ----- */
+/* Slightly translucent backdrop so the map glows through a bit */
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(69, 2, 117, 0.92);  /* transparent theme */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Split card */
+.detail-card {
+  width: 1320px;                         /* wider */
+  max-width: calc(100vw - 24px);         /* tighter margins to the edges */
+  max-height: calc(100vh - 24px); 
+  border-radius: 18px;
+  background: var(--panel);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+  overflow: hidden;                /* keep internal scrollbars inside */
+  display: grid;
+  grid-template-columns: 1fr 1.6fr; /* give the text more room */
+  position: relative;
+}
+
+/* Subtle vertical divider between left/right panes */
+.detail-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 38.5%;          /* aligns with the 1fr / 1.6fr split */
+  width: 1px;
+  background: rgba(255,255,255,0.10);
+}
+
+/* Expanded when chat is shown — keep similar proportion */
+.detail-card.is-chat {
+  grid-template-columns: 1fr 1.6fr;
+}
+
+/* Left: mini map */
+.detail-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px; /* your change */
+  background: var(--panel);
+}
+
+/* Bigger mini map (your values) */
+.mini-map {
+  height: 620px;   /* was 320px */
+  width: 660px;    /* was 360px */
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Right: content container — switch to FLEX so inner scroll works */
+.detail-right {
+  display: flex;                 /* <-- was grid */
+  flex-direction: column;
+  padding: 22px 24px 18px;
+  gap: 10px;
+  min-width: 0;                  /* prevents overflow in grid cells */
+  min-height: 0;                 /* enables child overflow scrolling */
+  background: var(--panel);
+}
+
+/* Header row in right pane */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.detail-actions { display: flex; gap: 10px; }
+
+/* Summary scroll area — becomes the scrollable region */
+.detail-body {
+  flex: 1;                       /* fill remaining height */
+  overflow-y: auto;              /* scroll here */
+  min-height: 0;                 /* critical for flex scroll */
+  color: #e9e3f3;
+  line-height: 1.55;
+  padding-right: 4px;            /* space for scrollbar */
+}
+
+/* Visible, subtle scrollbar */
+.detail-body::-webkit-scrollbar {
+  width: 8px;
+}
+.detail-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+.detail-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Footer: sticky full-width Ask More */
+.detail-footer {
+  position: sticky; bottom: 0;
+  display: flex; justify-content: center;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(46,1,74,0) 0%, rgba(46,1,74,0.35) 80%);
+}
+
+.detail-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 14px; border-radius: 12px; font-weight: 600;
+  color: #fff; border: 1px solid rgba(255,255,255,0.18);
+  background: var(--theme);
+  cursor: pointer;
+}
+.detail-btn.secondary { background: rgba(255,255,255,0.08); }
+
+.detail-btn-primary {
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid rgba(255,255,255,0.22);
+}
+
+/* Keep region labels simple */
+.region-label {
+  background: none; color: #fff; font-weight: 600; border: none; box-shadow: none; font-size: 13px;
+}

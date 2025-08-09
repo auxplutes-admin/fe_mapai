@@ -169,7 +169,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
   const shortSession = sessionId ? sessionId.slice(0, 6) : '—';
 
   return (
-    <div className="flex flex-col h-full min-h-0" style={{ background: BG_DARK }}>
+    <div className="flex flex-col h-[calc(100vh-200px)] " style={{ background: BG_DARK }}>
       {/* Header */}
       <div
         className="px-4 py-3 border-b flex items-center justify-between"
@@ -218,7 +218,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
               <MessageSquare className="w-7 h-7 text-white" />
             </div>
             <h4 className="text-xl font-semibold text-white mb-2">How can I help?</h4>
-            <p className="text-sm mb-5" style={{ color: TEXT_DIM }}>
+            <p className="text-sm mb-5" style={{ color: 'white' }}>
               Ask about this region’s background, risks, actors, or anything else.
             </p>
           </div>
@@ -295,7 +295,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
                   className="w-8 h-8 rounded-xl flex items-center justify-center"
                   style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${BORDER}` }}
                 >
-                  <Sparkles className="w-4 h-4 text-white" />
+                  <Sparkles className="w-4 h-4 text-black" />
                 </div>
                 <div
                   className="rounded-2xl p-4"

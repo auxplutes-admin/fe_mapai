@@ -1,28 +1,16 @@
 import { MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import KONGO_FLAG from "@/assets/kongo-flag.png";
-import GLOBE_LOGO from "@/assets/globe-logo.png";
+
 
 const handleClick = () => {
   window.location.href = "/dashboard/map";
 };
 
 export const Hero = () => (
-  <div className="relative w-full flex items-center justify-center min-h-screen">
-    {/* Top-left globe + label */}
-    <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-2">
-      <img
-        src={GLOBE_LOGO}
-        alt="Globe Logo"
-        className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-xl"
-      />
-      <span className="text-white/90 text-sm md:text-base font-medium tracking-wide">
-        Geoanalysis.ai
-      </span>
-    </div>
-
+  <div className="relative w-full flex items-center justify-center pt-24">
     {/* Main Content */}
-    <div className="container mx-auto max-w-6xl px-6">
+    <div className="container mx-auto max-w-7xl px-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-14 md:gap-16 items-center text-white min-h-full">
         {/* Left Column: Text */}
         <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left space-y-6">
