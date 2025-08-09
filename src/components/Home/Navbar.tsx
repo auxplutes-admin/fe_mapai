@@ -1,13 +1,3 @@
-import { Button } from "@/components/ui/button";
-import {
-    NavigationMenu,
-    NavigationMenuContent,
-    NavigationMenuItem,
-    NavigationMenuLink,
-    NavigationMenuList,
-    NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { Menu, MoveRight, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SESSION_COOKIE_NAME } from "@/constant";
@@ -38,113 +28,20 @@ export const Navbar = () => {
     };
 
     return (
-        <header className="w-full z-50 fixed top-0 left-0 bg-transparent">
-            <div className="mx-auto h-20 flex gap-4 flex-row lg:grid lg:grid-cols-3 items-center">
-                {/* Logo Section */}
-                <div className="flex flex-col items-center gap-2">
+       <header className="w-full z-50 fixed top-0 left-0 bg-transparent">
+            <div className="mx-auto h-30 flex items-center justify-between px-4 py-3">
+                {/* Logo Section - Now aligned to the left */}
+              <div className="flex flex-col items-center">
                     <img
                         src={GLOBE_LOGO}
                         alt="Globe Logo"
                         className="w-12 h-12 object-contain"
                     />
-                    <span className="text-lg font-medium text-white">
+                    <span className="text-sm font-medium text-white">
                         Geoanalysis.ai
                     </span>
                 </div>
-
-
-                {/* Navigation Section */}
-                {/* <div className="justify-center items-center gap-4 lg:flex hidden flex-row">
-                    <NavigationMenu className="flex justify-start items-start">
-                        <NavigationMenuList className="flex justify-start gap-4 flex-row">
-                            {navigationItems.map((item) => (
-                                <NavigationMenuItem key={item.title}>
-                                    {item.href ? (
-                                        <>
-                                            <NavigationMenuLink>
-                                                <Button variant="ghost" className="text-base md:text-lg">{item.title}</Button>
-                                            </NavigationMenuLink>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <NavigationMenuTrigger className="font-medium text-base md:text-lg">
-                                                {item.title}
-                                            </NavigationMenuTrigger>
-                                            <NavigationMenuContent className="!w-[450px] p-4">
-                                                <div className="flex flex-col lg:grid grid-cols-2 gap-4">
-                                                    <div className="flex flex-col h-full justify-between">
-                                                        <div className="flex flex-col">
-                                                            <p className="text-lg md:text-xl">{item.title}</p>
-                                                            <p className="text-muted-foreground text-sm md:text-base">
-                                                                {item.description}
-                                                            </p>
-                                                        </div>
-                                                        <Button size="sm" className="mt-10 text-base">
-                                                            Book a call today
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </NavigationMenuContent>
-                                        </>
-                                    )}
-                                </NavigationMenuItem>
-                            ))}
-                        </NavigationMenuList>
-                    </NavigationMenu>
-                </div> */}
-                {/* <div className="flex justify-end w-full gap-4">
-                    {isLoggedIn() ? (
-                        <Button 
-                            onClick={() => handleAuthNavigation('/dashboard')}
-                            className="text-base md:text-lg"
-                        >
-                            Dashboard
-                        </Button>
-                    ) : (
-                        <>
-                            <Button 
-                                variant="outline"
-                                onClick={() => handleAuthNavigation('/signin')}
-                                className="text-base md:text-lg"
-                            >
-                                Sign in
-                            </Button>
-                            <Button
-                                onClick={() => handleAuthNavigation('/login')}
-                                className="text-base md:text-lg"
-                            >
-                                Login
-                            </Button>
-                        </>
-                    )}
-                </div> */}
-                {/* <div className="flex w-12 shrink lg:hidden items-end justify-end">
-                    <Button variant="ghost" onClick={() => setOpen(!isOpen)}>
-                        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </Button>
-                    {isOpen && (
-                        <div className="absolute top-20 border-t flex flex-col w-full right-0 bg-background shadow-lg py-4 container gap-8">
-                            {navigationItems.map((item) => (
-                                <div key={item.title}>
-                                    <div className="flex flex-col gap-2">
-                                        {item.href ? (
-                                            <Link
-                                                to={item.href}
-                                                className="flex justify-between items-center"
-                                            >
-                                                <span className="text-xl md:text-2xl">{item.title}</span>
-                                                <MoveRight className="w-5 h-5 stroke-1 text-muted-foreground" />
-                                            </Link>
-                                        ) : (
-                                            <p className="text-xl md:text-2xl">{item.title}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div> */}
-            </div>
+                </div>
         </header>
     );
 };

@@ -9,6 +9,7 @@ import {
   Marker,
 } from 'react-leaflet';
 import { v4 as uuidv4 } from 'uuid';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import ChatPlayground from '../../components/Chat/ChatPlayground';
 import L, { LatLngExpression, PathOptions } from 'leaflet';
@@ -46,56 +47,66 @@ interface Region {
 }
 
 /* ---------------- Map controller for main map ---------------- */
-const MapController: React.FC<{ isSplit: boolean }> = ({ isSplit }) => {
+const MapController: React.FC = () => {
   const map = useMap();
   
   useEffect(() => {
-    if (isSplit) {
-      // When split, transform to mini-map mode
-      const southWest = L.latLng(-13.5, 12.0);
-      const northEast = L.latLng(5.5, 31.5);
-      map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [30, 30] });
-      
-      // Lock the map
-      map.dragging.disable();
-      map.touchZoom.disable();
-      map.doubleClickZoom.disable();
-      map.scrollWheelZoom.disable();
-      map.boxZoom.disable();
-      map.keyboard.disable();
-      
-      // Hide controls
-      const container = (map as any)._controlContainer;
-      if (container) {
-        container.style.display = 'none';
-      }
-    } else {
-      // Re-enable interactions for full map
-      map.dragging.enable();
-      map.touchZoom.enable();
-      map.doubleClickZoom.enable();
-      map.scrollWheelZoom.enable();
-      map.boxZoom.enable();
-      map.keyboard.enable();
-      
-      // Show controls
-      const container = (map as any)._controlContainer;
-      if (container) {
-        container.style.display = 'block';
-      }
-      
-      // Set bounds for full map
-      const southWest = L.latLng(-13.5, 12.0);
-      const northEast = L.latLng(5.5, 31.5);
-      map.setMaxBounds(L.latLngBounds(southWest, northEast));
-      map.setMinZoom(5);
-    }
-  }, [map, isSplit]);
+    const southWest = L.latLng(-13.5, 12.0);
+    const northEast = L.latLng(5.5, 31.5);
+    map.setMaxBounds(L.latLngBounds(southWest, northEast));
+    map.setMinZoom(5);
+  }, [map]);
   
   return null;
 };
 
-/* ---------------- Provinces Layer ---------------- */
+/* ---------------- Mini Map Component (Left Panel) ---------------- */
+const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince }) => {
+  const map = useMap();
+
+  const style = (feature: any): PathOptions => {
+    const name =
+      feature?.properties?.adm1_name ??
+      feature?.properties?.NAME_1 ??
+      feature?.properties?.name ??
+      '';
+    const isSelected =
+      selectedProvince &&
+      name &&
+      name.toLowerCase() === selectedProvince.toLowerCase();
+    
+    return {
+      weight: 1,
+      color: '#d9cfee',
+      fillColor: isSelected ? THEME_2 : '#ffffff',
+      fillOpacity: 1,
+    };
+  };
+
+  useEffect(() => {
+    const southWest = L.latLng(-13.5, 12.0);
+    const northEast = L.latLng(5.5, 31.5);
+    map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [30, 30] });
+    
+    // Lock the mini map
+    map.dragging.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+    map.scrollWheelZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+    
+    // Hide controls
+    const container = (map as any)._controlContainer;
+    if (container) {
+      container.style.display = 'none';
+    }
+  }, [map]);
+
+  return <GeoJSON data={DRC_CONGO as any} style={style} />;
+};
+
+/* ---------------- Provinces Layer for Main Map ---------------- */
 const DRCProvincesLayer: React.FC<{
   onOpenDetail: (
     title: string,
@@ -103,9 +114,8 @@ const DRCProvincesLayer: React.FC<{
     regionId: string,
     summary?: string
   ) => void;
-  isSplit: boolean;
-  selectedProvince?: string;
-}> = ({ onOpenDetail, isSplit, selectedProvince }) => {
+  onRegionsLoaded?: (regions: Region[]) => void;
+}> = ({ onOpenDetail, onRegionsLoaded }) => {
   const map = useMap();
   const [data, setData] = useState<any | null>(null);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -117,11 +127,14 @@ const DRCProvincesLayer: React.FC<{
       try {
         const rs = await getAllRegions();
         setRegions(rs);
+        if (onRegionsLoaded) {
+          onRegionsLoaded(rs);
+        }
       } catch (e) {
         console.error('Error fetching regions:', e);
       }
     })();
-  }, []);
+  }, [onRegionsLoaded]);
 
   // Color palette for normal view
   const greys = useMemo(() => {
@@ -142,45 +155,23 @@ const DRCProvincesLayer: React.FC<{
     setData(geojson);
   }, [greys]);
 
-  // Style function changes based on split mode
   const style = (feature: any): PathOptions => {
-    const provinceName =
-      feature?.properties?.adm1_name ??
-      feature?.properties?.NAME_1 ??
-      feature?.properties?.name ??
-      '';
-    
-    if (isSplit) {
-      // Mini-map style: white with selected province highlighted
-      const isSelected = selectedProvince && 
-        provinceName.toLowerCase() === selectedProvince.toLowerCase();
-      
-      return {
-        weight: 1,
-        color: '#d9cfee',
-        fillColor: isSelected ? THEME_2 : '#ffffff',
-        fillOpacity: 1,
-      };
-    } else {
-      // Normal map style
-      return {
-        weight: 1,
-        color: BORDER_GREY,
-        className: 'province-stroke',
-        fillColor: feature?.properties?._fillColour ?? '#d9d9d9',
-        fillOpacity: 0.9,
-      };
-    }
+    return {
+      weight: 1,
+      color: BORDER_GREY,
+      className: 'province-stroke',
+      fillColor: feature?.properties?._fillColour ?? '#d9d9d9',
+      fillOpacity: 0.9,
+    };
   };
 
-  // Clear/add labels based on split mode
+  // Add labels to map
   useEffect(() => {
     // Clear existing labels
     labelMarkersRef.current.forEach(marker => marker.remove());
     labelMarkersRef.current = [];
 
-    if (!isSplit && geoJsonLayerRef.current) {
-      // Add labels only in normal mode
+    if (geoJsonLayerRef.current) {
       geoJsonLayerRef.current.eachLayer((layer: any) => {
         const feature = layer.feature;
         const provinceName =
@@ -200,11 +191,9 @@ const DRCProvincesLayer: React.FC<{
         labelMarkersRef.current.push(labelMarker);
       });
     }
-  }, [isSplit, map, data]);
+  }, [map, data]);
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
-    if (isSplit) return; // No interactions in split mode
-    
     const provinceName =
       feature?.properties?.adm1_name ??
       feature?.properties?.NAME_1 ??
@@ -232,16 +221,16 @@ const DRCProvincesLayer: React.FC<{
     });
   };
 
-  // Fit bounds on mount (only for normal mode)
+  // Fit bounds on mount
   useEffect(() => {
-    if (!data || isSplit) return;
+    if (!data) return;
     setTimeout(() => {
       try {
         const b = (geoJsonLayerRef.current as any)?.getBounds?.();
         if (b?.isValid()) map.fitBounds(b, { padding: [20, 20] });
       } catch { }
     }, 0);
-  }, [data, map, isSplit]);
+  }, [data, map]);
 
   // World mask
   const maskData = useMemo(() => {
@@ -289,13 +278,12 @@ const DRCProvincesLayer: React.FC<{
       )}
       <GeoJSON
         ref={geoJsonLayerRef as any}
-        key={`geojson-${isSplit}-${selectedProvince}`} // Force re-render on state change
         data={data as any}
         style={style}
         onEachFeature={onEachFeature}
       />
-      {/* Region markers - only show in normal mode */}
-      {!isSplit && regions.map((region) => {
+      {/* Region markers */}
+      {regions.map((region) => {
         if (region.lat && region.long) {
           const drcFlagIcon = L.icon({
             iconUrl: drcFlag,
@@ -352,7 +340,7 @@ const RightPanel: React.FC<{
   onAskMore,
 }) => {
   return (
-    <div className="right-panel" style={{ background: PANEL }}>
+    <div className="right-panel">
       <div className="panel-header">
         <div className="panel-title">{title}</div>
         <button className="panel-btn secondary" onClick={onBack}>Back</button>
@@ -365,7 +353,7 @@ const RightPanel: React.FC<{
           </div>
           <div className="panel-footer">
             <button className="panel-btn panel-btn-primary" onClick={onAskMore}>
-              Ask More
+              Ask me more
             </button>
           </div>
         </>
@@ -380,6 +368,8 @@ const RightPanel: React.FC<{
 
 /* ---------------- Main Map Page ---------------- */
 const MapPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isSplit, setIsSplit] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -389,16 +379,57 @@ const MapPage: React.FC = () => {
     id?: string;
     summary?: string;
   }>({});
+  const [regions, setRegions] = useState<Region[]>([]);
+
+  // Check URL params for chat session from sidebar
+  useEffect(() => {
+    const sessionIdParam = searchParams.get('sessionId');
+    const regionIdParam = searchParams.get('regionId');
+    const regionNameParam = searchParams.get('regionName');
+    
+    if (sessionIdParam && regionIdParam && regions.length > 0) {
+      // Find the region details
+      const region = regions.find(r => r.region_id === regionIdParam);
+      const provinceName = region?.province_name || regionNameParam || '';
+      const title = region ? 
+        (region.province_name ? `${region.region_name} - ${region.province_name}` : region.region_name) :
+        regionNameParam || '';
+      
+      setDetail({
+        title: title,
+        selectedProvince: provinceName,
+        id: regionIdParam,
+        summary: region?.summary
+      });
+      setSessionId(sessionIdParam);
+      setIsSplit(true);
+      setShowChat(true); // Open directly in chat mode
+    }
+  }, [searchParams, regions]); // React to URL param changes and regions loading
+
+  // Fetch regions
+  useEffect(() => {
+    (async () => {
+      try {
+        const rs = await getAllRegions();
+        setRegions(rs);
+      } catch (e) {
+        console.error('Error fetching regions:', e);
+      }
+    })();
+  }, []);
 
   // Session init
   useEffect(() => {
-    let stored = localStorage.getItem('chat_session_id');
-    if (!stored) {
-      stored = uuidv4();
-      localStorage.setItem('chat_session_id', stored);
+    if (!sessionId) {
+      let stored = localStorage.getItem('chat_session_id');
+      if (!stored) {
+        stored = uuidv4();
+        localStorage.setItem('chat_session_id', stored);
+      }
+      setSessionId(stored);
     }
-    setSessionId(stored);
-  }, []);
+  }, [sessionId]);
 
   const openDetail = (
     title: string,
@@ -409,6 +440,13 @@ const MapPage: React.FC = () => {
     setDetail({ title, selectedProvince, id: regionId, summary });
     setIsSplit(true);
     setShowChat(false);
+    
+    // Clear URL params when opening from map click
+    const url = new URL(window.location.href);
+    url.searchParams.delete('sessionId');
+    url.searchParams.delete('regionId');
+    url.searchParams.delete('regionName');
+    window.history.replaceState({}, '', url);
   };
 
   const openChatInPanel = () => {
@@ -422,27 +460,25 @@ const MapPage: React.FC = () => {
     setIsSplit(false);
     setShowChat(false);
     setDetail({});
+     const url = new URL(window.location.href);
+  url.searchParams.delete('sessionId');
+  url.searchParams.delete('regionId');
+  url.searchParams.delete('regionName');
+  window.history.replaceState({}, '', url);
   };
 
   return (
-    <div className="map-page-root" style={{ background: THEME }}>
-      {/* Map Container - slides left when split */}
-      <div className={`map-container ${isSplit ? 'is-split' : ''}`}>
-        {/* Hint badge - only show when not split */}
-        {!isSplit && (
-          <div className="map-hint">
-            <p>Click any region to learn more</p>
-          </div>
-        )}
-
+    <div className="map-page-root">
+      {/* Main Map Container - slides away when split */}
+      <div className={`map-container ${isSplit ? 'is-hidden' : ''}`}>
+        {/* Hint badge */}
+        <div className="map-hint">
+          <p>Click any region to learn more</p>
+        </div>
         <MapContainer
           center={[-2.5, 23.5] as LatLngExpression}
           zoom={5}
-          style={{ 
-            height: '100vh', 
-            width: '100%',
-            background: isSplit ? PANEL : 'transparent'
-          }}
+          style={{ height: '100%', width: '100%' }}
           maxBounds={[[-13.5, 12.0], [5.5, 31.5]]}
           minZoom={5}
           maxZoom={10}
@@ -453,54 +489,73 @@ const MapPage: React.FC = () => {
           attributionControl={true}
           zoomSnap={0.5}
         >
-          <MapController isSplit={isSplit} />
+          <MapController />
           
-          {!isSplit && (
-            <LayersControl position="topright">
-              <LayersControl.BaseLayer checked name="Dark Matter">
-                <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  attribution="&copy; CARTO & OpenStreetMap contributors"
-                  bounds={[[-13.5, 12.0], [5.5, 31.5]]}
-                />
-              </LayersControl.BaseLayer>
-              <LayersControl.BaseLayer name="OpenStreetMap">
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution="&copy; OpenStreetMap contributors"
-                  bounds={[[-13.5, 12.0], [5.5, 31.5]]}
-                />
-              </LayersControl.BaseLayer>
-              <LayersControl.BaseLayer name="Satellite">
-                <TileLayer
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                  attribution="&copy; Esri"
-                  bounds={[[-13.5, 12.0], [5.5, 31.5]]}
-                />
-              </LayersControl.BaseLayer>
-            </LayersControl>
-          )}
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="Dark Matter">
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution="&copy; CARTO & OpenStreetMap contributors"
+                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="OpenStreetMap">
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Satellite">
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution="&copy; Esri"
+                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
 
           <DRCProvincesLayer 
             onOpenDetail={openDetail}
-            isSplit={isSplit}
-            selectedProvince={detail.selectedProvince}
+            onRegionsLoaded={setRegions}
           />
         </MapContainer>
+
       </div>
 
-      {/* Right Panel - slides in when split */}
+      {/* Split View Container - Mini Map + Right Panel */}
       {isSplit && (
-        <div className="right-panel-container">
-          <RightPanel
-            title={detail.title}
-            summary={detail.summary}
-            showChat={showChat}
-            regionId={detail.id}
-            sessionId={sessionId || undefined}
-            onBack={handleBackToMap}
-            onAskMore={openChatInPanel}
-          />
+        <div className="split-view-container">
+          {/* Left Mini Map */}
+          <div className="mini-map-container">
+            <MapContainer
+              center={[-2.5, 23.5] as LatLngExpression}
+              zoom={5}
+              className="mini-map"
+              zoomControl={false}
+              attributionControl={false}
+              dragging={false}
+              touchZoom={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              style={{ height: '100%', width: '100%', background: THEME }}
+            >
+              <MiniMapDRC selectedProvince={detail.selectedProvince} />
+            </MapContainer>
+          </div>
+
+          {/* Right Panel */}
+          <div className="right-panel-container">
+            <RightPanel
+              title={detail.title}
+              summary={detail.summary}
+              showChat={showChat}
+              regionId={detail.id}
+              sessionId={sessionId || undefined}
+              onBack={handleBackToMap}
+              onAskMore={openChatInPanel}
+            />
+          </div>
         </div>
       )}
     </div>

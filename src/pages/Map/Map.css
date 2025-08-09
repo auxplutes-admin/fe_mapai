@@ -2,134 +2,118 @@
 
 /* THEME */
 :root {
-  --theme: #450275;     /* backdrop + accents */
+  --theme: #450275;     /* backdrop + accents - KEEP CONSTANT */
   --theme-2: #F357A8;   /* highlight color */
   --panel: #2e014a;     /* card surfaces */
   --border-grey: #9AA0A6;
   --transition-speed: 0.5s;
 }
 
-/* Root container */
+/* Root container - ALWAYS purple background */
 .map-page-root {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   display: flex;
-  background: var(--theme);
+  background: var(--theme); /* CONSTANT purple background */
 }
 
-/* Map container with sliding animation */
+/* Main map container - takes full width of its parent */
 .map-container {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100vh;
-  transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
-              transform var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--theme);
+  height: 100%;
+  transition: opacity 0.3s ease; /* Simple fade instead of slide */
   z-index: 10;
 }
 
-/* When split, map takes 40% width */
-.map-container.is-split {
-  width: 40%;
-  background: var(--panel);
+/* Hide main map when detail is open */
+.map-container.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
-/* Ensure the leaflet container gets proper background in split mode */
-.map-container.is-split .leaflet-container {
-  background: var(--panel) !important;
-}
-
-/* Ensure tile layers are hidden in split mode to show only GeoJSON */
-.map-container.is-split .leaflet-tile-pane {
-  display: none !important;
-}
-
-/* Right panel container */
-.right-panel-container {
-  width: 60%;
-  height: 100vh;
-  animation: slideInRight var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+/* Split view container - fills the map page root, not the entire viewport */
+.split-view-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
-  position: relative;
+  animation: fadeIn 0.3s ease; /* Simple fade in */
   z-index: 20;
 }
 
-/* Slide in animation */
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+/* Mini map container (left 40%) */
+.mini-map-container {
+  width: 50%;
+  height: 100%;
+  background: var(--theme); /* Keep purple background */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
 }
 
-/* Province boundaries */
-.province-stroke { 
-  stroke: var(--border-grey) !important; 
+/* Mini map styling */
+.mini-map {
+  height: 100%;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--theme) !important;
 }
 
-/* Top-left hint pill */
-.map-hint {
-  position: absolute;
-  top: 56px;
-  left: 12px;
-  z-index: 1100;
-  padding: 12px 18px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #000;
-  background: #fccfe6;
-  border-radius: 8px;
-  user-select: none;
-  animation: fadeIn 0.3s ease-in;
+/* Right panel container (right 60%) */
+.right-panel-container {
+  width: 50%;
+  height: 100%;
+  position: relative;
+  background: var(--panel);
+  /* Removed slide animation */
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Region labels on map */
-.region-label {
-  background: none;
-  color: #fff;
-  font-weight: 600;
-  border: none;
-  box-shadow: none;
-  font-size: 13px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-/* Right Panel Styles */
+/* Right Panel Content */
 .right-panel {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: 32px 40px;
   gap: 16px;
   background: var(--panel);
   position: relative;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent content from going outside */
 }
 
-/* Panel header */
+/* Panel header - Fixed to prevent button cutoff */
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 20px;
   padding-bottom: 8px;
+  padding-right: 10px; /* Extra padding to ensure button is not cut */
+  min-height: 48px;
+  flex-shrink: 0; /* Prevent shrinking */
+  width: calc(100% - 10px); /* Account for extra padding */
 }
 
 .panel-title {
   font-size: 2rem;
   font-weight: 700;
   color: #fff;
+  flex: 1;
+  min-width: 0; /* Allow text truncation if needed */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Panel body - scrollable content */
@@ -140,6 +124,7 @@
   line-height: 1.6;
   font-size: 1.1rem;
   padding-right: 8px;
+  min-height: 0; /* Important for flex scrolling */
 }
 
 /* Scrollbar styling */
@@ -165,6 +150,7 @@
   padding-top: 16px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 /* Panel buttons */
@@ -172,15 +158,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 24px;
+  padding: 10px 20px; /* Reduced padding */
   border-radius: 12px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1rem; /* Slightly smaller */
   color: #fff;
   border: 1px solid rgba(255,255,255,0.18);
   background: var(--theme);
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap; /* Prevent button text wrapping */
+  flex-shrink: 0; /* Prevent button from shrinking */
+  min-width: fit-content; /* Ensure button takes its minimum width */
 }
 
 .panel-btn:hover {
@@ -216,30 +205,53 @@
   background: rgba(255,255,255,0.02);
 }
 
-/* Ensure Leaflet controls hide properly */
-.leaflet-control-container {
-  transition: opacity 0.3s ease;
+/* Animations - simplified */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-/* Ensure GeoJSON layers are visible in split mode */
-.map-container.is-split .leaflet-overlay-pane {
-  z-index: 100 !important;
+/* Province boundaries */
+.province-stroke { 
+  stroke: var(--border-grey) !important; 
 }
 
-/* Ensure the mask and provinces show properly */
-.map-container.is-split svg {
-  z-index: 100 !important;
+/* Top-left hint pill - positioned below zoom controls */
+.map-hint {
+  position: absolute;
+  top: 100px !important; /* Move down to avoid zoom controls */
+  left: 12px;  /* Align with zoom controls */
+  z-index: 11000;  /* Below zoom controls (1100) */
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #000;
+  background: #fccfe6;
+  border-radius: 8px;
+  user-select: none;
+  pointer-events: none;  /* Don't interfere with map interaction */
 }
 
-/* Ensure mask stays purple */
-.map-container path[fill="#450275"] {
-  fill: var(--theme) !important;
+/* Region labels on map */
+.region-label {
+  background: none;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  box-shadow: none;
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
-/* Responsive adjustments for smaller screens */
+/* Responsive adjustments */
 @media (max-width: 1024px) {
-  .map-container.is-split {
-    width: 35%;
+  .mini-map-container {
+    width: 45%;
+    padding: 20px;
   }
   
   .right-panel-container {
@@ -249,11 +261,16 @@
   .panel-title {
     font-size: 1.5rem;
   }
+  
+  .right-panel {
+    padding: 24px 30px;
+  }
 }
 
 @media (max-width: 768px) {
-  .map-container.is-split {
+  .mini-map-container {
     width: 30%;
+    padding: 15px;
   }
   
   .right-panel-container {
@@ -269,6 +286,11 @@
   }
   
   .panel-body {
+    font-size: 1rem;
+  }
+  
+  .panel-btn {
+    padding: 10px 20px;
     font-size: 1rem;
   }
 }
