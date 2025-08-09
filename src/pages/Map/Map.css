@@ -16,7 +16,7 @@
   height: 100%;
   overflow: hidden;
   display: flex;
-  background: linear-gradient(to bottom right, #160041, #450275, #F357A8) !important; /* CONSTANT purple background */
+  background: var(--theme); /* CONSTANT purple background */
 }
 
 /* Main map container - takes full width of its parent */
@@ -52,7 +52,7 @@
 .mini-map-container {
   width: 50%;
   height: 100%;
-  background: transparent; /* Keep purple background */
+  background: var(--theme); /* Keep purple background */
   position: relative;
   display: flex;
   align-items: center;
@@ -66,7 +66,7 @@
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
-  background: transparent !important;
+  background: var(--theme) !important;
 }
 
 /* Right panel container (right 60%) */
@@ -74,7 +74,7 @@
   width: 50%;
   height: 100%;
   position: relative;
-  background: transparent
+  background: #2a2a2a
   /* Removed slide animation */
 }
 
@@ -86,7 +86,7 @@
   flex-direction: column;
   padding: 32px 40px;
   gap: 16px;
-  background: transparent;
+  background: #450275;
   position: relative;
   box-sizing: border-box;
   overflow: hidden; /* Prevent content from going outside */
@@ -239,12 +239,11 @@
 /* Region labels on map */
 .region-label {
   background: none;
-  color: #fff;
+  color: #202020 !important;
   font-weight: 600;
   border: none;
   box-shadow: none;
   font-size: 13px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 /* Responsive adjustments */
@@ -293,9 +292,4 @@
     padding: 10px 20px;
     font-size: 1rem;
   }
-}
-
-
-.leaflet-container {
-  background: linear-gradient(to bottom right, #160041, #450275, #F357A8);
 }

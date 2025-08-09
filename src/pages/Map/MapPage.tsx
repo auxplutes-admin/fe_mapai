@@ -27,11 +27,6 @@ const THEME_2 = '#F357A8';      // global Detail map color (backdrop + accents)
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
-// Background gradient for page containers, panels, etc.
-const THEME_GRADIENT = 'linear-gradient(to bottom right, #160041, #450275, #F357A8)';
-
-// Solid fallback for places that can't use gradients (like Leaflet fillColor)
-const THEME_SOLID = '#450275'; 
 
 // Fix Leaflet default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -549,10 +544,7 @@ const MapPage: React.FC = () => {
   };
 
   return (
-    <div 
-    className="map-page-root"
-    style={{ background: THEME_GRADIENT }}
-    >
+    <div className="map-page-root">
       {/* Main Map Container - slides away when split */}
       <div className={`map-container ${isSplit ? 'is-hidden' : ''}`}>
         {/* Hint badge */}
