@@ -27,6 +27,12 @@ const THEME_2 = '#F357A8';      // global Detail map color (backdrop + accents)
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
+// Background gradient for page containers, panels, etc.
+const THEME_GRADIENT = 'linear-gradient(to bottom right, #160041, #450275, #F357A8)';
+
+// Solid fallback for places that can't use gradients (like Leaflet fillColor)
+const THEME_SOLID = '#450275'; 
+
 // Fix Leaflet default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -149,6 +155,13 @@ const DRCProvincesLayer: React.FC<{
 
   useEffect(() => {
     const geojson = DRC_CONGO as any;
+      console.log('GeoJSON data structure:', {
+    type: geojson?.type,
+    featuresCount: geojson?.features?.length,
+    firstFeature: geojson?.features?.[0],
+    hasValidStructure: geojson?.type === 'FeatureCollection' && Array.isArray(geojson?.features)
+  });
+  
     geojson.features.forEach((f: any, i: number) => {
       f.properties._fillColour = greys[i % greys.length];
     });
@@ -193,35 +206,101 @@ const DRCProvincesLayer: React.FC<{
     }
   }, [map, data]);
 
-  const onEachFeature = (feature: any, layer: L.Layer) => {
-    const provinceName =
-      feature?.properties?.adm1_name ??
-      feature?.properties?.NAME_1 ??
-      feature?.properties?.name ??
-      'Province';
+  // const onEachFeature = (feature: any, layer: L.Layer) => {
+  //   console.log('onEachFeature called with:', { 
+  //   feature, 
+  //   hasFeature: !!feature,
+  //   hasProperties: !!feature?.properties,
+  //   featureType: feature?.type,
+  //   geometryType: feature?.geometry?.type 
+  // });
+  //   const provinceName =
+  //     feature?.properties?.adm1_name
 
-    const region = regions.find(
-      (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
-    );
+  //   const region = regions.find(
+  //     (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
+  //   );
 
-    const regionId = region?.region_id || provinceName.toLowerCase();
-    const summary = region?.summary;
+  //   console.log(feature)
+  //   const regionId = region?.region_id || provinceName.toLowerCase();
+  //   const summary = region?.summary;
 
-    layer.on({
-      mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
-      mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
-      click: () => {
-        onOpenDetail(
-          provinceName,
-          provinceName,
-          regionId,
-          summary
-        );
-      },
-    });
-  };
+  //   layer.on({
+  //     mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
+  //     mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
+  //     click: () => {
+  //       onOpenDetail(
+  //         provinceName,
+  //         provinceName,
+  //         regionId,
+  //         summary
+  //       );
+  //     },
+  //   });
+  // };
 
   // Fit bounds on mount
+  
+  const onEachFeature = (feature: any, layer: L.Layer) => {
+  // Log when each feature is processed during map initialization
+  console.log('Processing feature during map init:', feature);
+  
+  const provinceName =
+    feature?.properties?.adm1_name ??
+    feature?.properties?.NAME_1 ??
+    feature?.properties?.name ??
+    'Province';
+
+    const normalize = (s?: string) =>
+  (s || '')
+    .normalize('NFKD')                       // split accents
+    .replace(/\p{Diacritic}/gu, '')          // drop accents
+    .replace(/[–—−‐-‒﹘﹣－]/g, '-')          // unify dash types to "-"
+    .replace(/\s+/g, ' ')                    // collapse whitespace
+    .trim()
+    .toLowerCase();
+
+const region = regions.find(
+  (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
+);
+
+  // const region = regions.find(
+  //   (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
+  // );
+
+  const regionId = region?.region_id || provinceName.toLowerCase();
+  const summary = region?.summary;
+
+  layer.on({
+    mouseover: (e: any) => {
+      console.log('Mouse over province:', provinceName);
+      e.target.setStyle({ weight: 2, fillOpacity: 1 });
+    },
+    mouseout: (e: any) => {
+      console.log('Mouse out province:', provinceName);
+      if (geoJsonLayerRef.current) {
+        geoJsonLayerRef.current.resetStyle(e.target);
+      }
+    },
+    click: () => {
+      // Log when a region is clicked
+      console.log('=== Region Clicked ===');
+      console.log('Feature:', feature);
+      console.log('Properties:', feature?.properties);
+      console.log('Province Name:', provinceName);
+      console.log('Region ID:', regionId);
+      console.log('Summary:', summary);
+      console.log('====================');
+      
+      onOpenDetail(
+        provinceName,
+        provinceName,
+        regionId,
+        summary
+      );
+    },
+  });
+};
   useEffect(() => {
     if (!data) return;
     setTimeout(() => {
@@ -277,6 +356,7 @@ const DRCProvincesLayer: React.FC<{
         />
       )}
       <GeoJSON
+      key={`provinces-${regions.length}`}  
         ref={geoJsonLayerRef as any}
         data={data as any}
         style={style}
@@ -339,6 +419,7 @@ const RightPanel: React.FC<{
   onBack,
   onAskMore,
 }) => {
+  console.log(summary)
   return (
     <div className="right-panel">
       <div className="panel-header">
@@ -468,7 +549,10 @@ const MapPage: React.FC = () => {
   };
 
   return (
-    <div className="map-page-root">
+    <div 
+    className="map-page-root"
+    style={{ background: THEME_GRADIENT }}
+    >
       {/* Main Map Container - slides away when split */}
       <div className={`map-container ${isSplit ? 'is-hidden' : ''}`}>
         {/* Hint badge */}
