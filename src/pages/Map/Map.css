@@ -86,7 +86,7 @@
   flex-direction: column;
   padding: 32px 40px;
   gap: 16px;
-  background: transparent;
+  background: #280145;
   position: relative;
   box-sizing: border-box;
   overflow: hidden; /* Prevent content from going outside */
@@ -164,7 +164,7 @@
   font-size: 1rem; /* Slightly smaller */
   color: #fff;
   border: 1px solid rgba(255,255,255,0.18);
-  background: var(--theme);
+  background: #d4d4d4f1;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap; /* Prevent button text wrapping */
@@ -189,7 +189,7 @@
   width: 100%;
   max-width: 260px;
   border: 1px solid rgba(255,255,255,0.22);
-  background: var(--theme);
+  background: #d4d4d4f1;
 }
 
 .panel-btn-primary:hover {
