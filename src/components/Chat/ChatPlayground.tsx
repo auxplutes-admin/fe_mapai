@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -18,15 +19,28 @@ interface Message {
   timestamp: Date;
 }
 
+export type ProvinceDetection =
+  | { kind: 'none' }
+  | { kind: 'matched'; province: string }
+  | { kind: 'ambiguous'; options: string[] };
+
 interface ChatPlaygroundProps {
   regionId?: string;
   sessionId?: string;
+  onProvinceIntent?: (text: string) => ProvinceDetection;
+  pendingProvinceChoices?: string[] | null;
+  onChooseProvince?: (province: string) => void;
 }
 
-const formatTime = (d: Date) =>
-  d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatTime = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) => {
+const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
+  regionId,
+  sessionId,
+  onProvinceIntent,
+  pendingProvinceChoices,
+  onChooseProvince,
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,12 +117,34 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
       console.error('No session ID available');
       return;
     }
-    if (!regionId) {
+
+    // Province intent detection FIRST — per choice A, ask if ambiguous
+    const intent = onProvinceIntent?.(textToSend);
+
+    if (intent?.kind === 'ambiguous') {
       setMessages((prev) => [
         ...prev,
-        { id: uuidv4(), text: 'Please select a region first.', sender: 'ai', timestamp: new Date() },
+        {
+          id: uuidv4(),
+          text: 'Which province did you mean?',
+          sender: 'ai',
+          timestamp: new Date(),
+        },
       ]);
-      return;
+      setInput('');
+      return; // wait for user to select a chip
+    }
+
+    if (intent?.kind === 'matched') {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uuidv4(),
+          text: `Focusing on ${intent.province}.`,
+          sender: 'ai',
+          timestamp: new Date(),
+        },
+      ]);
     }
 
     const userMessage: Message = {
@@ -169,26 +205,17 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
   const shortSession = sessionId ? sessionId.slice(0, 6) : '—';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] " style={{ background: BG_DARK }}>
+    <div className="flex flex-col h-[calc(100vh-200px)]" style={{ background: BG_DARK }}>
       {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between"
-        style={{ background: THEME, borderColor: BORDER }}
-      >
+      <div className="px-4 py-3 border-b flex items-center justify-between" style={{ background: THEME, borderColor: BORDER }}>
         <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
-            style={{ background: 'rgba(255,255,255,0.12)', border: `1px solid ${BORDER}` }}
-          >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: 'rgba(255,255,255,0.12)', border: `1px solid ${BORDER}` }}>
             <Cpu className="w-5 h-5 text-white" />
           </div>
           <div className="leading-tight">
             <div className="flex items-center gap-2">
               <span className="text-white font-semibold tracking-wide">Assistant</span>
-              <span
-                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: `1px solid ${BORDER}` }}
-              >
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: `1px solid ${BORDER}` }}>
                 <MapPin className="w-3 h-3" />
                 {regionId || 'No region'}
               </span>
@@ -211,10 +238,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
         {/* Empty state */}
         {messages.length === 0 && !isHistoryLoading ? (
           <div className="mx-auto max-w-[36rem] text-center">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${BORDER}` }}
-            >
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${BORDER}` }}>
               <MessageSquare className="w-7 h-7 text-white" />
             </div>
             <h4 className="text-xl font-semibold text-white mb-2">How can I help?</h4>
@@ -247,22 +271,14 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className="flex items-end gap-3 max-w-[85%]">
                   {!mine && (
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${BORDER}` }}
-                    >
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${BORDER}` }}>
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   )}
                   <div
-                    className={[
-                      'rounded-2xl p-4 shadow-lg whitespace-pre-line leading-relaxed',
-                      mine ? '' : '',
-                    ].join(' ')}
+                    className={['rounded-2xl p-4 shadow-lg whitespace-pre-line leading-relaxed'].join(' ')}
                     style={{
-                      background: mine
-                        ? 'linear-gradient(135deg, #6a22c1, #450275)'
-                        : CARD_DARK,
+                      background: mine ? 'linear-gradient(135deg, #6a22c1, #450275)' : CARD_DARK,
                       color: 'white',
                       border: `1px solid ${BORDER}`,
                     }}
@@ -273,13 +289,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
                     </p>
                   </div>
                   {mine && (
-                    <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center"
-                      style={{
-                        background: 'linear-gradient(135deg, #6a22c1, #450275)',
-                        border: `1px solid ${BORDER}`,
-                      }}
-                    >
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6a22c1, #450275)', border: `1px solid ${BORDER}` }}>
                       <span className="text-white text-xs font-medium">U</span>
                     </div>
                   )}
@@ -291,16 +301,10 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
           {isLoading && (
             <div className="flex justify-start">
               <div className="flex items-end gap-3 max-w-[85%]">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${BORDER}` }}
-                >
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.10)', border: `1px solid ${BORDER}` }}>
                   <Sparkles className="w-4 h-4 text-black" />
                 </div>
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ background: CARD_DARK, border: `1px solid ${BORDER}` }}
-                >
+                <div className="rounded-2xl p-4" style={{ background: CARD_DARK, border: `1px solid ${BORDER}` }}>
                   <div className="flex items-center gap-1">
                     <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce" />
                     <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -311,25 +315,43 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({ regionId, sessionId }) 
             </div>
           )}
 
+          {/* Ambiguity quick-reply chips */}
+          {pendingProvinceChoices?.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {pendingProvinceChoices.map((opt) => (
+                <Button
+                  key={opt}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    onChooseProvince?.(opt);
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        id: uuidv4(),
+                        text: `Okay — focusing on ${opt}.`,
+                        sender: 'ai',
+                        timestamp: new Date(),
+                      },
+                    ]);
+                  }}
+                  style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}
+                >
+                  {opt}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       {/* Input Area */}
-      <div
-        className="p-3 border-t sticky bottom-0"
-        style={{ background: CARD_DARK, borderColor: BORDER }}
-      >
+      <div className="p-3 border-t sticky bottom-0" style={{ background: CARD_DARK, borderColor: BORDER }}>
         <div className="flex gap-3">
           <div className="flex-1">
-            <div
-              className="relative rounded-2xl shadow-inner"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${BORDER}`,
-                backdropFilter: 'blur(6px)',
-              }}
-            >
+            <div className="relative rounded-2xl shadow-inner" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${BORDER}`, backdropFilter: 'blur(6px)' }}>
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

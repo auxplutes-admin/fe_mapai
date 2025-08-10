@@ -1,4 +1,4 @@
-// MapPage.tsx
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MapContainer,
@@ -23,13 +23,13 @@ import drcFlag from '@/assets/Flag-of-Congo-09.png';
 
 // ---------- THEME ----------
 const THEME = '#450275';       // global purple (backdrop + accents)
-const THEME_2 = '#F357A8';      // global Detail map color (backdrop + accents)
+const THEME_2 = '#F357A8';     // highlight color
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
-
 // Fix Leaflet default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -47,17 +47,123 @@ interface Region {
   summary?: string;
 }
 
+// ---------------- Normalization + Province Index ----------------
+const normalize = (s?: string) =>
+  (s || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')  // remove combining marks
+    .replace(/[–—−‐-‒﹘﹣－]/g, '-')   // unify dash types
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')    // <- strip punctuation to spaces (handles ?!.,"'`() etc.)
+    .replace(/\s+/g, ' ')             // collapse spaces
+    .trim();
+
+// Canonical province names list (as in DRC 26 provinces)
+const CANONICAL_PROVINCES = [
+  'Kasai-Oriental', 'Tshopo', 'Ituri', 'Kongo-Central', 'Mai-Ndombe', 'Kwilu', 'Kwango', 'Equateur',
+  'Sud-Ubangi', 'Nord-Ubangi', 'Mongala', 'Tshuapa', 'Bas-Uele', 'Haut-Uele', 'Nord-Kivu', 'Maniema',
+  'Lualaba', 'Haut-Lomami', 'Tanganyika', 'Haut-Katanga', 'Sankuru', 'Lomami', 'Kasai-Central', 'Kasai',
+  'Sud-Kivu', 'Kinshasa'
+];
+
+// Common aliases (no need to be exhaustive — add as needed)
+const PROVINCE_ALIASES: Record<string, string[]> = {
+  'Kongo-Central': ['kongo central', 'bas-congo', 'bas congo'],
+  'Kasai-Central': ['kasai central', 'kasai-central', 'kananga'],
+  'Kasai-Oriental': ['kasai oriental', 'kasai-oriental', 'mbuji-mayi', 'mbuji mayi'],
+  'Kasai': ['kasai'],
+  'Nord-Kivu': ['north kivu', 'goma'],
+  'Sud-Kivu': ['south kivu', 'bukavu'],
+  'Ituri': ['bunia'],
+  'Tshopo': ['kisangani'],
+  'Haut-Katanga': ['haut katanga', 'lubumbashi'],
+  'Lualaba': ['kolwezi'],
+  'Tanganyika': ['kalemie'],
+  'Equateur': ['mbandaka'],
+  'Kinshasa': ['kin'],
+};
+
+const buildProvinceIndex = (geo: any) => {
+  const idx = new Map<string, string>(); // normalized key -> canonical name from GeoJSON
+  const names = new Set<string>();
+
+  geo?.features?.forEach((f: any) => {
+    const n = f?.properties?.adm1_name ?? f?.properties?.NAME_1 ?? f?.properties?.name;
+    if (n) names.add(n);
+  });
+
+  // Direct names from GeoJSON
+  for (const n of names) idx.set(normalize(n), n);
+
+  // Add aliases pointing to canonical names (prefer exact name from GeoJSON if present)
+  Object.entries(PROVINCE_ALIASES).forEach(([canon, list]) => {
+    const canonFromGeo = [...names].find(n => normalize(n) === normalize(canon)) ?? canon;
+    list.forEach(a => idx.set(normalize(a), canonFromGeo));
+  });
+
+  // Ensure all canonical names resolve even if GeoJSON casing varies
+  CANONICAL_PROVINCES.forEach(c => {
+    const hit = [...names].find(n => normalize(n) === normalize(c)) ?? c;
+    idx.set(normalize(c), hit);
+  });
+
+  return idx;
+};
+
+// Province detection result
+type ProvinceDetection =
+  | { kind: 'none' }
+  | { kind: 'matched'; province: string }
+  | { kind: 'ambiguous'; options: string[] };
+
+const detectProvinceFromText = (text: string, idx: Map<string, string>): ProvinceDetection => {
+  const words = normalize(text).split(' ').filter(Boolean);
+  const grams = new Set<string>();
+  for (let len = 1; len <= 3; len++) {
+    for (let i = 0; i + len <= words.length; i++) grams.add(words.slice(i, i + len).join(' '));
+  }
+
+  const hits: string[] = [];
+  for (const g of grams) {
+    const m = idx.get(g);
+    if (m) hits.push(m);
+  }
+
+  console.log(words, grams, hits)
+  // De-dup
+  const uniq = Array.from(new Set(hits));
+  console.log(uniq)
+  if (uniq.length === 1) return { kind: 'matched', province: uniq[0] };
+
+  if (uniq.length > 1) {
+    // Special case: plain "kasai" hits both Kasai and Kasai-Central/Oriental
+    // Offer sorted unique list so user can choose.
+    return { kind: 'ambiguous', options: uniq.sort((a, b) => a.localeCompare(b)) };
+  }
+
+  // If user typed a single-token province that isn't in GeoJSON (e.g., spelling), check fuzzy via startsWith
+  if (words.length === 1) {
+    const token = words[0];
+    const options = CANONICAL_PROVINCES
+      .filter(c => normalize(c).startsWith(token))
+      .map(c => idx.get(normalize(c)) || c);
+    const uniq2 = Array.from(new Set(options));
+    if (uniq2.length === 1) return { kind: 'matched', province: uniq2[0] };
+    if (uniq2.length > 1) return { kind: 'ambiguous', options: uniq2.sort((a, b) => a.localeCompare(b)) };
+  }
+
+  return { kind: 'none' };
+};
+
 /* ---------------- Map controller for main map ---------------- */
 const MapController: React.FC = () => {
   const map = useMap();
-  
   useEffect(() => {
     const southWest = L.latLng(-13.5, 12.0);
     const northEast = L.latLng(5.5, 31.5);
     map.setMaxBounds(L.latLngBounds(southWest, northEast));
     map.setMinZoom(5);
   }, [map]);
-  
   return null;
 };
 
@@ -72,10 +178,8 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
       feature?.properties?.name ??
       '';
     const isSelected =
-      selectedProvince &&
-      name &&
-      name.toLowerCase() === selectedProvince.toLowerCase();
-    
+      selectedProvince && normalize(name) === normalize(selectedProvince);
+
     return {
       weight: 1,
       color: '#d9cfee',
@@ -88,20 +192,18 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
     const southWest = L.latLng(-13.5, 12.0);
     const northEast = L.latLng(5.5, 31.5);
     map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [30, 30] });
-    
-    // Lock the mini map
+
+    // Lock the mini map interactions
     map.dragging.disable();
     map.touchZoom.disable();
     map.doubleClickZoom.disable();
     map.scrollWheelZoom.disable();
     map.boxZoom.disable();
     map.keyboard.disable();
-    
+
     // Hide controls
     const container = (map as any)._controlContainer;
-    if (container) {
-      container.style.display = 'none';
-    }
+    if (container) container.style.display = 'none';
   }, [map]);
 
   return <GeoJSON data={DRC_CONGO as any} style={style} />;
@@ -128,16 +230,14 @@ const DRCProvincesLayer: React.FC<{
       try {
         const rs = await getAllRegions();
         setRegions(rs);
-        if (onRegionsLoaded) {
-          onRegionsLoaded(rs);
-        }
+        onRegionsLoaded?.(rs);
       } catch (e) {
         console.error('Error fetching regions:', e);
       }
     })();
   }, [onRegionsLoaded]);
 
-  // Color palette for normal view
+  // Greyscale palette for main map fill
   const greys = useMemo(() => {
     const steps = 30;
     const arr: string[] = [];
@@ -150,30 +250,21 @@ const DRCProvincesLayer: React.FC<{
 
   useEffect(() => {
     const geojson = DRC_CONGO as any;
-      console.log('GeoJSON data structure:', {
-    type: geojson?.type,
-    featuresCount: geojson?.features?.length,
-    firstFeature: geojson?.features?.[0],
-    hasValidStructure: geojson?.type === 'FeatureCollection' && Array.isArray(geojson?.features)
-  });
-  
-    geojson.features.forEach((f: any, i: number) => {
+    geojson?.features?.forEach((f: any, i: number) => {
       f.properties._fillColour = greys[i % greys.length];
     });
     setData(geojson);
   }, [greys]);
 
-  const style = (feature: any): PathOptions => {
-    return {
-      weight: 1,
-      color: BORDER_GREY,
-      className: 'province-stroke',
-      fillColor: feature?.properties?._fillColour ?? '#d9d9d9',
-      fillOpacity: 0.9,
-    };
-  };
+  const style = (feature: any): PathOptions => ({
+    weight: 1,
+    color: BORDER_GREY,
+    className: 'province-stroke',
+    fillColor: feature?.properties?._fillColour ?? '#d9d9d9',
+    fillOpacity: 0.9,
+  });
 
-  // Add labels to map
+  // Add non-interactive province labels
   useEffect(() => {
     // Clear existing labels
     labelMarkersRef.current.forEach(marker => marker.remove());
@@ -187,7 +278,7 @@ const DRCProvincesLayer: React.FC<{
           feature?.properties?.NAME_1 ??
           feature?.properties?.name ??
           'Province';
-        
+
         const center = layer.getBounds().getCenter();
         const label = L.divIcon({
           className: 'region-label',
@@ -201,112 +292,48 @@ const DRCProvincesLayer: React.FC<{
     }
   }, [map, data]);
 
-  // const onEachFeature = (feature: any, layer: L.Layer) => {
-  //   console.log('onEachFeature called with:', { 
-  //   feature, 
-  //   hasFeature: !!feature,
-  //   hasProperties: !!feature?.properties,
-  //   featureType: feature?.type,
-  //   geometryType: feature?.geometry?.type 
-  // });
-  //   const provinceName =
-  //     feature?.properties?.adm1_name
-
-  //   const region = regions.find(
-  //     (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
-  //   );
-
-  //   console.log(feature)
-  //   const regionId = region?.region_id || provinceName.toLowerCase();
-  //   const summary = region?.summary;
-
-  //   layer.on({
-  //     mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
-  //     mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
-  //     click: () => {
-  //       onOpenDetail(
-  //         provinceName,
-  //         provinceName,
-  //         regionId,
-  //         summary
-  //       );
-  //     },
-  //   });
-  // };
-
-  // Fit bounds on mount
-  
   const onEachFeature = (feature: any, layer: L.Layer) => {
-  // Log when each feature is processed during map initialization
-  console.log('Processing feature during map init:', feature);
-  
-  const provinceName =
-    feature?.properties?.adm1_name ??
-    feature?.properties?.NAME_1 ??
-    feature?.properties?.name ??
-    'Province';
+    const provinceName =
+      feature?.properties?.adm1_name ??
+      feature?.properties?.NAME_1 ??
+      feature?.properties?.name ??
+      'Province';
 
-    const normalize = (s?: string) =>
-  (s || '')
-    .normalize('NFKD')                       // split accents
-    .replace(/\p{Diacritic}/gu, '')          // drop accents
-    .replace(/[–—−‐-‒﹘﹣－]/g, '-')          // unify dash types to "-"
-    .replace(/\s+/g, ' ')                    // collapse whitespace
-    .trim()
-    .toLowerCase();
+    const region = regions.find(
+      (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
+    );
 
-const region = regions.find(
-  (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
-);
+    const regionId = region?.region_id || provinceName.toLowerCase();
+    const summary = region?.summary;
 
-  // const region = regions.find(
-  //   (r) => r.province_name && r.province_name.toLowerCase() === provinceName.toLowerCase()
-  // );
+    layer.on({
+      mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
+      mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
+      click: () => {
+        const title = region?.province_name
+          ? `${region.region_name} - ${region.province_name}`
+          : provinceName;
+        onOpenDetail(
+          title,
+          provinceName,
+          regionId,
+          summary
+        );
+      },
+    });
+  };
 
-  const regionId = region?.region_id || provinceName.toLowerCase();
-  const summary = region?.summary;
-
-  layer.on({
-    mouseover: (e: any) => {
-      console.log('Mouse over province:', provinceName);
-      e.target.setStyle({ weight: 2, fillOpacity: 1 });
-    },
-    mouseout: (e: any) => {
-      console.log('Mouse out province:', provinceName);
-      if (geoJsonLayerRef.current) {
-        geoJsonLayerRef.current.resetStyle(e.target);
-      }
-    },
-    click: () => {
-      // Log when a region is clicked
-      console.log('=== Region Clicked ===');
-      console.log('Feature:', feature);
-      console.log('Properties:', feature?.properties);
-      console.log('Province Name:', provinceName);
-      console.log('Region ID:', regionId);
-      console.log('Summary:', summary);
-      console.log('====================');
-      
-      onOpenDetail(
-        provinceName,
-        provinceName,
-        regionId,
-        summary
-      );
-    },
-  });
-};
   useEffect(() => {
     if (!data) return;
     setTimeout(() => {
       try {
         const b = (geoJsonLayerRef.current as any)?.getBounds?.();
         if (b?.isValid()) map.fitBounds(b, { padding: [20, 20] });
-      } catch { }
+      } catch {}
     }, 0);
   }, [data, map]);
 
-  // World mask
+  // World mask to retain purple around DRC
   const maskData = useMemo(() => {
     if (!data) return null;
     const worldRing = [
@@ -341,23 +368,18 @@ const region = regions.find(
       {maskData && (
         <GeoJSON
           data={maskData}
-          style={{ 
-            fillColor: THEME,
-            color: THEME, 
-            weight: 0, 
-            fillOpacity: 1 
-          }}
+          style={{ fillColor: THEME, color: THEME, weight: 0, fillOpacity: 1 }}
           interactive={false}
         />
       )}
       <GeoJSON
-      key={`provinces-${regions.length}`}  
+        key={`provinces-${regions.length}`}
         ref={geoJsonLayerRef as any}
         data={data as any}
         style={style}
         onEachFeature={onEachFeature}
       />
-      {/* Region markers */}
+      {/* Region markers from backend (optional) */}
       {regions.map((region) => {
         if (region.lat && region.long) {
           const drcFlagIcon = L.icon({
@@ -405,23 +427,14 @@ const RightPanel: React.FC<{
   sessionId?: string;
   onBack: () => void;
   onAskMore: () => void;
-}> = ({
-  title,
-  summary,
-  showChat,
-  regionId,
-  sessionId,
-  onBack,
-  onAskMore,
-}) => {
-  console.log(summary)
+}> = ({ title, summary, showChat, regionId, sessionId, onBack, onAskMore }) => {
   return (
     <div className="right-panel">
       <div className="panel-header">
         <div className="panel-title">{title}</div>
         <button className="panel-btn secondary" onClick={onBack}>Back</button>
       </div>
-      
+
       {!showChat ? (
         <>
           <div className="panel-body">
@@ -457,20 +470,70 @@ const MapPage: React.FC = () => {
   }>({});
   const [regions, setRegions] = useState<Region[]>([]);
 
+  // Province index
+  const provinceIndex = useMemo(() => buildProvinceIndex(DRC_CONGO as any), []);
+
+  // Ambiguity choices for quick-replies in chat
+  const [pendingProvinceChoices, setPendingProvinceChoices] = useState<string[] | null>(null);
+
+  // Handle chat intent → update mini-map highlight and (optionally) region panel
+  const handleProvinceIntent = (freeText: string): ProvinceDetection => {
+    const res = detectProvinceFromText(freeText, provinceIndex);
+      console.log('[select]', freeText);
+
+
+    if (res.kind === 'matched') {
+      const province = res.province;
+      console.log('[select]', res.province);
+      setDetail(prev => ({ ...prev, selectedProvince: province }));
+
+      // Optionally sync right-panel with backend region record (if any)
+      const region = regions.find(r => normalize(r.province_name) === normalize(province));
+      if (region) {
+        setDetail({
+          title: region.province_name ? `${region.region_name} - ${region.province_name}` : region.region_name,
+          selectedProvince: region.province_name ?? province,
+          id: region.region_id,
+          summary: region.summary
+        });
+      }
+      setPendingProvinceChoices(null);
+    } else if (res.kind === 'ambiguous') {
+      setPendingProvinceChoices(res.options);
+    } else {
+      setPendingProvinceChoices(null);
+    }
+
+    return res;
+  };
+
+  const chooseProvince = (province: string) => {
+    setDetail(prev => ({ ...prev, selectedProvince: province }));
+    const region = regions.find(r => normalize(r.province_name) === normalize(province));
+    if (region) {
+      setDetail({
+        title: region.province_name ? `${region.region_name} - ${region.province_name}` : region.region_name,
+        selectedProvince: region.province_name ?? province,
+        id: region.region_id,
+        summary: region.summary
+      });
+    }
+    setPendingProvinceChoices(null);
+  };
+
   // Check URL params for chat session from sidebar
   useEffect(() => {
     const sessionIdParam = searchParams.get('sessionId');
     const regionIdParam = searchParams.get('regionId');
     const regionNameParam = searchParams.get('regionName');
-    
+
     if (sessionIdParam && regionIdParam && regions.length > 0) {
-      // Find the region details
       const region = regions.find(r => r.region_id === regionIdParam);
       const provinceName = region?.province_name || regionNameParam || '';
-      const title = region ? 
+      const title = region ?
         (region.province_name ? `${region.region_name} - ${region.province_name}` : region.region_name) :
         regionNameParam || '';
-      
+
       setDetail({
         title: title,
         selectedProvince: provinceName,
@@ -479,9 +542,9 @@ const MapPage: React.FC = () => {
       });
       setSessionId(sessionIdParam);
       setIsSplit(true);
-      setShowChat(true); // Open directly in chat mode
+      setShowChat(true);
     }
-  }, [searchParams, regions]); // React to URL param changes and regions loading
+  }, [searchParams, regions]);
 
   // Fetch regions
   useEffect(() => {
@@ -516,7 +579,7 @@ const MapPage: React.FC = () => {
     setDetail({ title, selectedProvince, id: regionId, summary });
     setIsSplit(true);
     setShowChat(false);
-    
+
     // Clear URL params when opening from map click
     const url = new URL(window.location.href);
     url.searchParams.delete('sessionId');
@@ -536,16 +599,16 @@ const MapPage: React.FC = () => {
     setIsSplit(false);
     setShowChat(false);
     setDetail({});
-     const url = new URL(window.location.href);
-  url.searchParams.delete('sessionId');
-  url.searchParams.delete('regionId');
-  url.searchParams.delete('regionName');
-  window.history.replaceState({}, '', url);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('sessionId');
+    url.searchParams.delete('regionId');
+    url.searchParams.delete('regionName');
+    window.history.replaceState({}, '', url);
   };
 
   return (
     <div className="map-page-root">
-      {/* Main Map Container - slides away when split */}
+      {/* Main Map Container */}
       <div className={`map-container ${isSplit ? 'is-hidden' : ''}`}>
         {/* Hint badge */}
         <div className="map-hint">
@@ -566,7 +629,7 @@ const MapPage: React.FC = () => {
           zoomSnap={0.5}
         >
           <MapController />
-          
+
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="Dark Matter">
               <TileLayer
@@ -591,15 +654,11 @@ const MapPage: React.FC = () => {
             </LayersControl.BaseLayer>
           </LayersControl>
 
-          <DRCProvincesLayer 
-            onOpenDetail={openDetail}
-            onRegionsLoaded={setRegions}
-          />
+          <DRCProvincesLayer onOpenDetail={openDetail} onRegionsLoaded={setRegions} />
         </MapContainer>
-
       </div>
 
-      {/* Split View Container - Mini Map + Right Panel */}
+      {/* Split View: Mini Map + Right Panel */}
       {isSplit && (
         <div className="split-view-container">
           {/* Left Mini Map */}
@@ -622,15 +681,35 @@ const MapPage: React.FC = () => {
 
           {/* Right Panel */}
           <div className="right-panel-container">
-            <RightPanel
-              title={detail.title}
-              summary={detail.summary}
-              showChat={showChat}
-              regionId={detail.id}
-              sessionId={sessionId || undefined}
-              onBack={handleBackToMap}
-              onAskMore={openChatInPanel}
-            />
+            <div className="right-panel">
+              <div className="panel-header">
+                <div className="panel-title">{detail.title}</div>
+                <button className="panel-btn secondary" onClick={handleBackToMap}>Back</button>
+              </div>
+
+              {!showChat ? (
+                <>
+                  <div className="panel-body">
+                    {detail.summary || 'No summary available for this region yet.'}
+                  </div>
+                  <div className="panel-footer">
+                    <button className="panel-btn panel-btn-primary" onClick={() => openChatInPanel()}>
+                      Ask me more
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="panel-chat-container">
+                  <ChatPlayground
+                    regionId={detail.id}
+                    sessionId={sessionId || undefined}
+                    onProvinceIntent={handleProvinceIntent}
+                    pendingProvinceChoices={pendingProvinceChoices}
+                    onChooseProvince={chooseProvince}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

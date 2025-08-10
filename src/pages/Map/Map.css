@@ -1,4 +1,3 @@
-/* Map.css */
 
 /* THEME */
 :root {
@@ -48,7 +47,7 @@
   z-index: 20;
 }
 
-/* Mini map container (left 40%) */
+/* Mini map container (left 50%) */
 .mini-map-container {
   width: 50%;
   height: 100%;
@@ -69,13 +68,12 @@
   background: var(--theme) !important;
 }
 
-/* Right panel container (right 60%) */
+/* Right panel container (right 50%) */
 .right-panel-container {
   width: 50%;
   height: 100%;
   position: relative;
-  background: #2a2a2a
-  /* Removed slide animation */
+  background: #2a2a2a;
 }
 
 /* Right Panel Content */
@@ -128,22 +126,10 @@
 }
 
 /* Scrollbar styling */
-.panel-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.panel-body::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
-  border-radius: 4px;
-}
-
-.panel-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-.panel-body::-webkit-scrollbar-track {
-  background: transparent;
-}
+.panel-body::-webkit-scrollbar { width: 8px; }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+.panel-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
 
 /* Panel footer */
 .panel-footer {
@@ -172,29 +158,13 @@
   min-width: fit-content; /* Ensure button takes its minimum width */
 }
 
-.panel-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
+.panel-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-.panel-btn.secondary {
-  background: rgba(255,255,255,0.08);
-}
+.panel-btn.secondary { background: rgba(255,255,255,0.08); }
+.panel-btn.secondary:hover { background: rgba(255,255,255,0.12); }
 
-.panel-btn.secondary:hover {
-  background: rgba(255,255,255,0.12);
-}
-
-.panel-btn-primary {
-  width: 100%;
-  max-width: 260px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: var(--theme);
-}
-
-.panel-btn-primary:hover {
-  background: #5a0394;
-}
+.panel-btn-primary { width: 100%; max-width: 260px; border: 1px solid rgba(255,255,255,0.22); background: var(--theme); }
+.panel-btn-primary:hover { background: #5a0394; }
 
 /* Chat container */
 .panel-chat-container {
@@ -206,19 +176,10 @@
 }
 
 /* Animations - simplified */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* Province boundaries */
-.province-stroke { 
-  stroke: var(--border-grey) !important; 
-}
+.province-stroke { stroke: var(--border-grey) !important; }
 
 /* Top-left hint pill - positioned below zoom controls */
 .map-hint {
@@ -248,48 +209,18 @@
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .mini-map-container {
-    width: 45%;
-    padding: 20px;
-  }
-  
-  .right-panel-container {
-    width: 65%;
-  }
-  
-  .panel-title {
-    font-size: 1.5rem;
-  }
-  
-  .right-panel {
-    padding: 24px 30px;
-  }
+  .mini-map-container { width: 45%; padding: 20px; }
+  .right-panel-container { width: 65%; }
+  .panel-title { font-size: 1.5rem; }
+  .right-panel { padding: 24px 30px; }
 }
 
 @media (max-width: 768px) {
-  .mini-map-container {
-    width: 30%;
-    padding: 15px;
-  }
-  
-  .right-panel-container {
-    width: 70%;
-  }
-  
-  .right-panel {
-    padding: 20px 24px;
-  }
-  
-  .panel-title {
-    font-size: 1.3rem;
-  }
-  
-  .panel-body {
-    font-size: 1rem;
-  }
-  
-  .panel-btn {
-    padding: 10px 20px;
-    font-size: 1rem;
-  }
+  .mini-map-container { width: 30%; padding: 15px; }
+  .right-panel-container { width: 70%; }
+  .right-panel { padding: 20px 24px; }
+  .panel-title { font-size: 1.3rem; }
+  .panel-body { font-size: 1rem; }
+  .panel-btn { padding: 10px 20px; font-size: 1rem; }
 }
+
