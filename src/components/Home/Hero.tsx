@@ -7,7 +7,7 @@ const handleClick = () => {
 };
 
 export const Hero = () => (
-  <div className="h-screen w-full flex items-center justify-center overflow-hidden">
+  <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
     {/* Main Content */}
     <div className="mx-auto max-w-7xl px-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center text-white">
