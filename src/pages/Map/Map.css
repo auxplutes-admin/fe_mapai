@@ -1,3 +1,4 @@
+/* Map.css */
 
 /* THEME */
 :root {
@@ -15,7 +16,7 @@
   height: 100%;
   overflow: hidden;
   display: flex;
-  background: var(--theme); /* CONSTANT purple background */
+  background: linear-gradient(to bottom right, #160041, #450275, #F357A8) !important; /* CONSTANT purple background */
 }
 
 /* Main map container - takes full width of its parent */
@@ -47,11 +48,11 @@
   z-index: 20;
 }
 
-/* Mini map container (left 50%) */
+/* Mini map container (left 40%) */
 .mini-map-container {
   width: 50%;
   height: 100%;
-  background: var(--theme); /* Keep purple background */
+  background: transparent; /* Keep purple background */
   position: relative;
   display: flex;
   align-items: center;
@@ -65,15 +66,16 @@
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--theme) !important;
+  background: transparent !important;
 }
 
-/* Right panel container (right 50%) */
+/* Right panel container (right 60%) */
 .right-panel-container {
   width: 50%;
   height: 100%;
   position: relative;
-  background: #2a2a2a;
+  background: transparent
+  /* Removed slide animation */
 }
 
 /* Right Panel Content */
@@ -84,7 +86,7 @@
   flex-direction: column;
   padding: 32px 40px;
   gap: 16px;
-  background: #450275;
+  background: #280145;
   position: relative;
   box-sizing: border-box;
   overflow: hidden; /* Prevent content from going outside */
@@ -114,7 +116,7 @@
   white-space: nowrap;
 }
 
-/* Panel body - scrollable content */
+/* Panel body - scrollable content with proper flex layout */
 .panel-body {
   flex: 1;
   overflow-y: auto;
@@ -123,23 +125,36 @@
   font-size: 1.1rem;
   padding-right: 8px;
   min-height: 0; /* Important for flex scrolling */
+  margin-bottom: 16px; /* Space between content and button */
 }
 
 /* Scrollbar styling */
-.panel-body::-webkit-scrollbar { width: 8px; }
-.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-.panel-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar {
+  width: 8px;
+}
 
-/* Panel footer */
+.panel-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+
+.panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Panel footer - positioned with proper spacing from bottom */
 .panel-footer {
-  padding-top: 16px;
+  padding-bottom: 24px; /* Eye-level spacing from bottom */
   display: flex;
   justify-content: center;
   flex-shrink: 0;
 }
 
-/* Panel buttons */
+/* Panel buttons - Updated with grey background and black text */
 .panel-btn {
   display: inline-flex;
   align-items: center;
@@ -148,9 +163,9 @@
   border-radius: 12px;
   font-weight: 600;
   font-size: 1rem; /* Slightly smaller */
-  color: #fff;
+  color: #000000; /* Black text */
   border: 1px solid rgba(255,255,255,0.18);
-  background: var(--theme);
+  background: #9ca3af; /* Grey background */
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap; /* Prevent button text wrapping */
@@ -158,13 +173,32 @@
   min-width: fit-content; /* Ensure button takes its minimum width */
 }
 
-.panel-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.panel-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  background: #6b7280; /* Darker grey on hover */
+}
 
-.panel-btn.secondary { background: rgba(255,255,255,0.08); }
-.panel-btn.secondary:hover { background: rgba(255,255,255,0.12); }
+.panel-btn.secondary {
+  background: #9ca3af; /* Same grey background */
+  color: #000000; /* Black text */
+}
 
-.panel-btn-primary { width: 100%; max-width: 260px; border: 1px solid rgba(255,255,255,0.22); background: var(--theme); }
-.panel-btn-primary:hover { background: #5a0394; }
+.panel-btn.secondary:hover {
+  background: #6b7280; /* Darker grey on hover */
+}
+
+.panel-btn-primary {
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: #9ca3af; /* Grey background */
+  color: #000000; /* Black text */
+}
+
+.panel-btn-primary:hover {
+  background: #6b7280; /* Darker grey on hover */
+}
 
 /* Chat container */
 .panel-chat-container {
@@ -176,10 +210,19 @@
 }
 
 /* Animations - simplified */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 /* Province boundaries */
-.province-stroke { stroke: var(--border-grey) !important; }
+.province-stroke { 
+  stroke: var(--border-grey) !important; 
+}
 
 /* Top-left hint pill - positioned below zoom controls */
 .map-hint {
@@ -200,7 +243,7 @@
 /* Region labels on map */
 .region-label {
   background: none;
-  color: #202020 !important;
+  color: #1f1f1f !important;
   font-weight: 600;
   border: none;
   box-shadow: none;
@@ -209,18 +252,88 @@
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .mini-map-container { width: 45%; padding: 20px; }
-  .right-panel-container { width: 65%; }
-  .panel-title { font-size: 1.5rem; }
-  .right-panel { padding: 24px 30px; }
+  .mini-map-container {
+    width: 45%;
+    padding: 20px;
+  }
+  
+  .right-panel-container {
+    width: 65%;
+  }
+  
+  .panel-title {
+    font-size: 1.5rem;
+  }
+  
+  .right-panel {
+    padding: 24px 30px;
+  }
 }
 
 @media (max-width: 768px) {
-  .mini-map-container { width: 30%; padding: 15px; }
-  .right-panel-container { width: 70%; }
-  .right-panel { padding: 20px 24px; }
-  .panel-title { font-size: 1.3rem; }
-  .panel-body { font-size: 1rem; }
-  .panel-btn { padding: 10px 20px; font-size: 1rem; }
+  .mini-map-container {
+    width: 30%;
+    padding: 15px;
+  }
+  
+  .right-panel-container {
+    width: 70%;
+  }
+  
+  .right-panel {
+    padding: 20px 24px;
+  }
+  
+  .panel-title {
+    font-size: 1.3rem;
+  }
+  
+  .panel-body {
+    font-size: 1rem;
+  }
+  
+  .panel-btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+  
+  .panel-footer {
+    padding-bottom: 16px; /* Adjusted for mobile */
+  }
+}
+
+.leaflet-container {
+  background: linear-gradient(to bottom right, #160041, #450275, #F357A8);
+}
+
+.summary-container {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Summary content styling */
+.summary-content {
+  color: #e9e3f3;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+/* Scrollbar styling for summary container */
+.summary-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.summary-container::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+
+.summary-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.summary-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 

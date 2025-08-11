@@ -418,6 +418,14 @@ const DRCProvincesLayer: React.FC<{
   );
 };
 
+const formatSummary = (text?: string) => {
+  console.log('Original text:', text);
+  if (!text) return 'No summary available for this region yet.';
+  const formatted = text.replace(/\\n/g, '<br />'); // Note the double backslash
+  console.log('Formatted text:', formatted);
+  return formatted;
+};
+/* ---------------- Right Panel Component ---------------- */
 /* ---------------- Right Panel Component ---------------- */
 const RightPanel: React.FC<{
   title?: string;
@@ -428,6 +436,10 @@ const RightPanel: React.FC<{
   onBack: () => void;
   onAskMore: () => void;
 }> = ({ title, summary, showChat, regionId, sessionId, onBack, onAskMore }) => {
+  
+  // Convert \n to <br> tags for proper line breaks
+
+
   return (
     <div className="right-panel">
       <div className="panel-header">
@@ -437,9 +449,10 @@ const RightPanel: React.FC<{
 
       {!showChat ? (
         <>
-          <div className="panel-body">
-            {summary || 'No summary available for this region yet.'}
-          </div>
+          <div 
+            className="panel-body"
+            dangerouslySetInnerHTML={{ __html: formatSummary(summary) }}
+          />
           <div className="panel-footer">
             <button className="panel-btn panel-btn-primary" onClick={onAskMore}>
               Ask me more
@@ -689,9 +702,10 @@ const MapPage: React.FC = () => {
 
               {!showChat ? (
                 <>
-                  <div className="panel-body">
-                    {detail.summary || 'No summary available for this region yet.'}
-                  </div>
+<div 
+  className="panel-body"
+  dangerouslySetInnerHTML={{ __html: formatSummary(detail.summary) }}
+/>
                   <div className="panel-footer">
                     <button className="panel-btn panel-btn-primary" onClick={() => openChatInPanel()}>
                       Ask me more
