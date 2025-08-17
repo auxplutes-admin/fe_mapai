@@ -248,6 +248,7 @@
   border: none;
   box-shadow: none;
   font-size: 13px;
+  pointer-events: auto;
 }
 
 /* Responsive adjustments */

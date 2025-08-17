@@ -7,6 +7,7 @@ import {
   LayersControl,
   GeoJSON,
   Marker,
+  Tooltip
 } from 'react-leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -26,6 +27,27 @@ const THEME = '#450275';       // global purple (backdrop + accents)
 const THEME_2 = '#F357A8';     // highlight color
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
+
+// A reusable, colorable pin (no images)
+const makePinIcon = (fill = THEME_2, stroke = '#ffffff') =>
+  L.divIcon({
+    className: 'custom-pin', // optional
+    html: `
+      <svg viewBox="0 0 24 36" width="28" height="42" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1
+                 C6.477 1 2 5.477 2 11
+                 c0 8.8 10 23 10 23
+                 s10-14.2 10-23
+                 C22 5.477 17.523 1 12 1z"
+              fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+        <circle cx="12" cy="11" r="4" fill="#ffffff" opacity="0.85"/>
+      </svg>
+    `,
+    iconSize: [28, 42],
+    iconAnchor: [14, 40],
+    popupAnchor: [0, -36],
+  });
+
 
 // Fix Leaflet default marker icon
 // @ts-ignore
@@ -171,6 +193,7 @@ const MapController: React.FC = () => {
 const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince }) => {
   const map = useMap();
 
+
   const style = (feature: any): PathOptions => {
     const name =
       feature?.properties?.adm1_name ??
@@ -224,6 +247,7 @@ const DRCProvincesLayer: React.FC<{
   const [regions, setRegions] = useState<Region[]>([]);
   const geoJsonLayerRef = useRef<L.GeoJSON<any> | null>(null);
   const labelMarkersRef = useRef<L.Marker[]>([]);
+  const pinIcon = useMemo(() => makePinIcon('#450275'), []); // pick any hex
 
   useEffect(() => {
     (async () => {
@@ -265,32 +289,77 @@ const DRCProvincesLayer: React.FC<{
   });
 
   // Add non-interactive province labels
-  useEffect(() => {
-    // Clear existing labels
-    labelMarkersRef.current.forEach(marker => marker.remove());
-    labelMarkersRef.current = [];
+  // useEffect(() => {
+  //   // Clear existing labels
+  //   labelMarkersRef.current.forEach(marker => marker.remove());
+  //   labelMarkersRef.current = [];
 
-    if (geoJsonLayerRef.current) {
-      geoJsonLayerRef.current.eachLayer((layer: any) => {
-        const feature = layer.feature;
-        const provinceName =
-          feature?.properties?.adm1_name ??
-          feature?.properties?.NAME_1 ??
-          feature?.properties?.name ??
-          'Province';
+  //   if (geoJsonLayerRef.current) {
+  //     geoJsonLayerRef.current.eachLayer((layer: any) => {
+  //       const feature = layer.feature;
+  //       const provinceName =
+  //         feature?.properties?.adm1_name ??
+  //         feature?.properties?.NAME_1 ??
+  //         feature?.properties?.name ??
+  //         'Province';
 
-        const center = layer.getBounds().getCenter();
-        const label = L.divIcon({
-          className: 'region-label',
-          html: `<div>${provinceName}</div>`,
-          iconSize: [100, 40],
-          iconAnchor: [50, 20],
-        });
-        const labelMarker = L.marker(center, { icon: label, interactive: false }).addTo(map);
-        labelMarkersRef.current.push(labelMarker);
+  //       const center = layer.getBounds().getCenter();
+  //       const label = L.divIcon({
+  //         className: 'region-label',
+  //         html: `<div>${provinceName}</div>`,
+  //         iconSize: [100, 40],
+  //         iconAnchor: [50, 20],
+  //       });
+  //       const labelMarker = L.marker(center, { icon: label, interactive: false }).addTo(map);
+  //       labelMarkersRef.current.push(labelMarker);
+  //     });
+  //   }
+  // }, [map, data]);
+
+  // Add interactive province label markers with hover tooltips
+useEffect(() => {
+  // Clear existing labels
+  labelMarkersRef.current.forEach(marker => marker.remove());
+  labelMarkersRef.current = [];
+
+  if (geoJsonLayerRef.current) {
+    geoJsonLayerRef.current.eachLayer((layer: any) => {
+      const feature = layer.feature;
+      const provinceName =
+        feature?.properties?.adm1_name ??
+        feature?.properties?.NAME_1 ??
+        feature?.properties?.name ??
+        'Province';
+
+      const center = layer.getBounds().getCenter();
+
+      // Try to find a matching backend region for a stable regionId
+      const matched = regions.find(
+        (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
+      );
+
+      // Fallback if no backend region exists
+      const regionId = matched?.region_id ?? normalize(provinceName).replace(/\s+/g, '-');
+
+      const label = L.divIcon({
+        className: 'region-label',
+        html: `<div>${provinceName}</div>`,
+        iconSize: [100, 40],
+        iconAnchor: [50, 20],
       });
-    }
-  }, [map, data]);
+
+      const labelMarker = L.marker(center, { icon: label, interactive: true }).addTo(map);
+
+      // Show lat/lng + regionId on hover
+      labelMarker.bindTooltip(
+        `Lat: ${center.lat.toFixed(4)}<br/>Lng: ${center.lng.toFixed(4)}<br/>Region ID: ${regionId}`,
+        { sticky: true, direction: 'top' }
+      );
+
+      labelMarkersRef.current.push(labelMarker);
+    });
+  }
+}, [map, data, regions]); // <-- include regions
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
     const provinceName =
@@ -363,6 +432,7 @@ const DRCProvincesLayer: React.FC<{
 
   if (!data) return null;
 
+
   return (
     <>
       {maskData && (
@@ -380,7 +450,7 @@ const DRCProvincesLayer: React.FC<{
         onEachFeature={onEachFeature}
       />
       {/* Region markers from backend (optional) */}
-      {regions.map((region) => {
+      {/* {regions.map((region) => {
         if (region.lat && region.long) {
           const drcFlagIcon = L.icon({
             iconUrl: drcFlag,
@@ -413,7 +483,58 @@ const DRCProvincesLayer: React.FC<{
           );
         }
         return null;
-      })}
+      })} */}
+
+      {regions.map((region) => {
+  if (region.lat && region.long) {
+    // const drcFlagIcon = L.icon({
+    //   iconUrl: drcFlag,
+    //   iconSize: [64, 40],
+    //   iconAnchor: [32, 40],
+    //   popupAnchor: [0, -10],
+    // });
+
+    const provinceName = region.province_name || '';
+    const displayTitle = provinceName
+      ? `${region.region_name} - ${provinceName}`
+      : region.region_name;
+
+    const latNum = parseFloat(region.lat);
+    const lngNum = parseFloat(region.long);
+
+    return (
+      <Marker
+        key={region.id}
+        position={[latNum, lngNum]}
+        icon={pinIcon}
+
+        
+        eventHandlers={{
+          click: () => {
+            onOpenDetail(
+              displayTitle,
+              provinceName,
+              region.region_id,
+              region.summary
+            );
+          },
+        }}
+      >
+        <Tooltip direction="top" sticky>
+          <div>
+            Lat: {Number.isFinite(latNum) ? latNum.toFixed(4) : region.lat}
+            <br />
+            Long: {Number.isFinite(lngNum) ? lngNum.toFixed(4) : region.long}
+            <br />
+            Region ID: {region.region_id}
+          </div>
+        </Tooltip>
+      </Marker>
+    );
+  }
+  return null;
+})}
+
     </>
   );
 };
