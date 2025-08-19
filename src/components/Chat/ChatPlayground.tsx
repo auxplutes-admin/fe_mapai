@@ -758,7 +758,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
             title="Export entire chat to PDF"
           >
             <Download className="w-4 h-4 mr-1" />
-            Export PDF
+            Export All to PDF
           </Button>
         </div>
       </div>
@@ -828,7 +828,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
                       className="absolute -top-2 -right-2 h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                       style={{ background: 'rgba(255,255,255,0.12)', border: `1px solid ${BORDER}` }}
                       aria-label="Export this message to PDF"
-                      title="Export this message"
+                      title="Export to PDF"
                     >
                       <Download className="w-4 h-4 text-white" />
                     </Button>
