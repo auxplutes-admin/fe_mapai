@@ -17,10 +17,9 @@ import L, { LatLngExpression, PathOptions } from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import DRC_CONGO from '@/pages/MapJSON/DRC_CONGO.json';
+import SA from '@/pages/MapJSON/SA.json';
 import { getAllRegions } from '@/api';
 import './Map.css';
-import drcFlag from '@/assets/Flag-of-Congo-09.png';
 
 // ---------- THEME ----------
 const THEME = '#450275';       // global purple (backdrop + accents)
@@ -80,29 +79,30 @@ const normalize = (s?: string) =>
     .replace(/\s+/g, ' ')             // collapse spaces
     .trim();
 
-// Canonical province names list (as in DRC 26 provinces)
+// Canonical province names list (as in SA 9 provinces)
 const CANONICAL_PROVINCES = [
-  'Kasai-Oriental', 'Tshopo', 'Ituri', 'Kongo-Central', 'Mai-Ndombe', 'Kwilu', 'Kwango', 'Equateur',
-  'Sud-Ubangi', 'Nord-Ubangi', 'Mongala', 'Tshuapa', 'Bas-Uele', 'Haut-Uele', 'Nord-Kivu', 'Maniema',
-  'Lualaba', 'Haut-Lomami', 'Tanganyika', 'Haut-Katanga', 'Sankuru', 'Lomami', 'Kasai-Central', 'Kasai',
-  'Sud-Kivu', 'Kinshasa'
+  'Eastern Cape',
+  'Free State',
+  'Gauteng',
+  'KwaZulu-Natal',
+  'Limpopo',
+  'Mpumalanga',
+  'Northern Cape',
+  'North West',
+  'Western Cape',
 ];
 
 // Common aliases (no need to be exhaustive — add as needed)
 const PROVINCE_ALIASES: Record<string, string[]> = {
-  'Kongo-Central': ['kongo central', 'bas-congo', 'bas congo'],
-  'Kasai-Central': ['kasai central', 'kasai-central', 'kananga'],
-  'Kasai-Oriental': ['kasai oriental', 'kasai-oriental', 'mbuji-mayi', 'mbuji mayi'],
-  'Kasai': ['kasai'],
-  'Nord-Kivu': ['north kivu', 'goma'],
-  'Sud-Kivu': ['south kivu', 'bukavu'],
-  'Ituri': ['bunia'],
-  'Tshopo': ['kisangani'],
-  'Haut-Katanga': ['haut katanga', 'lubumbashi'],
-  'Lualaba': ['kolwezi'],
-  'Tanganyika': ['kalemie'],
-  'Equateur': ['mbandaka'],
-  'Kinshasa': ['kin'],
+  'Gauteng': ['johannesburg', 'pretoria'],
+  'Western Cape': ['cape town'],
+  'KwaZulu-Natal': ['durban'],
+  'Eastern Cape': ['port elizabeth', 'gqeberha'],
+  'Limpopo': ['polokwane'],
+  'Mpumalanga': ['nelspruit'],
+  'Free State': ['bloemfontein'],
+  'North West': ['rustenburg'],
+  'Northern Cape': ['kimberley'],
 };
 
 const buildProvinceIndex = (geo: any) => {
@@ -110,7 +110,7 @@ const buildProvinceIndex = (geo: any) => {
   const names = new Set<string>();
 
   geo?.features?.forEach((f: any) => {
-    const n = f?.properties?.adm1_name ?? f?.properties?.NAME_1 ?? f?.properties?.name;
+    const n = f?.properties?.adm1_name ?? f?.properties?.NAME_1 ?? f?.properties?.ADM1_EN ?? f?.properties?.name;
     if (n) names.add(n);
   });
 
@@ -181,8 +181,8 @@ const detectProvinceFromText = (text: string, idx: Map<string, string>): Provinc
 const MapController: React.FC = () => {
   const map = useMap();
   useEffect(() => {
-    const southWest = L.latLng(-13.5, 12.0);
-    const northEast = L.latLng(5.5, 31.5);
+    const southWest = L.latLng(-35.5, 15.0);
+    const northEast = L.latLng(-21.5, 33.5);
     map.setMaxBounds(L.latLngBounds(southWest, northEast));
     map.setMinZoom(5);
   }, [map]);
@@ -198,6 +198,7 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
     const name =
       feature?.properties?.adm1_name ??
       feature?.properties?.NAME_1 ??
+      feature?.properties?.ADM1_EN ?? // Name of the province in English
       feature?.properties?.name ??
       '';
     const isSelected =
@@ -212,8 +213,8 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
   };
 
   useEffect(() => {
-    const southWest = L.latLng(-13.5, 12.0);
-    const northEast = L.latLng(5.5, 31.5);
+    const southWest = L.latLng(-35.5, 15.0);
+    const northEast = L.latLng(-21.5, 33.5);
     map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [30, 30] });
 
     // Lock the mini map interactions
@@ -229,7 +230,7 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
     if (container) container.style.display = 'none';
   }, [map]);
 
-  return <GeoJSON data={DRC_CONGO as any} style={style} />;
+  return <GeoJSON data={SA as any} style={style} />;
 };
 
 /* ---------------- Provinces Layer for Main Map ---------------- */
@@ -273,7 +274,7 @@ const DRCProvincesLayer: React.FC<{
   }, []);
 
   useEffect(() => {
-    const geojson = DRC_CONGO as any;
+    const geojson = SA as any;
     geojson?.features?.forEach((f: any, i: number) => {
       f.properties._fillColour = greys[i % greys.length];
     });
@@ -288,83 +289,57 @@ const DRCProvincesLayer: React.FC<{
     fillOpacity: 0.9,
   });
 
-  // Add non-interactive province labels
-  // useEffect(() => {
-  //   // Clear existing labels
-  //   labelMarkersRef.current.forEach(marker => marker.remove());
-  //   labelMarkersRef.current = [];
-
-  //   if (geoJsonLayerRef.current) {
-  //     geoJsonLayerRef.current.eachLayer((layer: any) => {
-  //       const feature = layer.feature;
-  //       const provinceName =
-  //         feature?.properties?.adm1_name ??
-  //         feature?.properties?.NAME_1 ??
-  //         feature?.properties?.name ??
-  //         'Province';
-
-  //       const center = layer.getBounds().getCenter();
-  //       const label = L.divIcon({
-  //         className: 'region-label',
-  //         html: `<div>${provinceName}</div>`,
-  //         iconSize: [100, 40],
-  //         iconAnchor: [50, 20],
-  //       });
-  //       const labelMarker = L.marker(center, { icon: label, interactive: false }).addTo(map);
-  //       labelMarkersRef.current.push(labelMarker);
-  //     });
-  //   }
-  // }, [map, data]);
-
   // Add interactive province label markers with hover tooltips
-useEffect(() => {
-  // Clear existing labels
-  labelMarkersRef.current.forEach(marker => marker.remove());
-  labelMarkersRef.current = [];
+  useEffect(() => {
+    // Clear existing labels
+    labelMarkersRef.current.forEach(marker => marker.remove());
+    labelMarkersRef.current = [];
 
-  if (geoJsonLayerRef.current) {
-    geoJsonLayerRef.current.eachLayer((layer: any) => {
-      const feature = layer.feature;
-      const provinceName =
-        feature?.properties?.adm1_name ??
-        feature?.properties?.NAME_1 ??
-        feature?.properties?.name ??
-        'Province';
+    if (geoJsonLayerRef.current) {
+      geoJsonLayerRef.current.eachLayer((layer: any) => {
+        const feature = layer.feature;
+        const provinceName =
+          feature?.properties?.adm1_name ??
+          feature?.properties?.NAME_1 ??
+          feature?.properties?.ADM1_EN ?? // Name of the province in English
+          feature?.properties?.name ??
+          'Province';
 
-      const center = layer.getBounds().getCenter();
+        const center = layer.getBounds().getCenter();
 
-      // Try to find a matching backend region for a stable regionId
-      const matched = regions.find(
-        (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
-      );
+        // Try to find a matching backend region for a stable regionId
+        const matched = regions.find(
+          (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
+        );
 
-      // Fallback if no backend region exists
-      const regionId = matched?.region_id ?? normalize(provinceName).replace(/\s+/g, '-');
+        // Fallback if no backend region exists
+        const regionId = matched?.region_id ?? normalize(provinceName).replace(/\s+/g, '-');
 
-      const label = L.divIcon({
-        className: 'region-label',
-        html: `<div>${provinceName}</div>`,
-        iconSize: [100, 40],
-        iconAnchor: [50, 20],
+        const label = L.divIcon({
+          className: 'region-label',
+          html: `<div>${provinceName}</div>`,
+          iconSize: [100, 40],
+          iconAnchor: [50, 20],
+        });
+
+        const labelMarker = L.marker(center, { icon: label, interactive: true }).addTo(map);
+
+        // Show lat/lng + regionId on hover
+        labelMarker.bindTooltip(
+          `Lat: ${center.lat.toFixed(4)}<br/>Lng: ${center.lng.toFixed(4)}<br/>Region ID: ${regionId}`,
+          { sticky: true, direction: 'top' }
+        );
+
+        labelMarkersRef.current.push(labelMarker);
       });
-
-      const labelMarker = L.marker(center, { icon: label, interactive: true }).addTo(map);
-
-      // Show lat/lng + regionId on hover
-      labelMarker.bindTooltip(
-        `Lat: ${center.lat.toFixed(4)}<br/>Lng: ${center.lng.toFixed(4)}<br/>Region ID: ${regionId}`,
-        { sticky: true, direction: 'top' }
-      );
-
-      labelMarkersRef.current.push(labelMarker);
-    });
-  }
-}, [map, data, regions]); // <-- include regions
+    }
+  }, [map, data, regions]); // <-- include regions
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
     const provinceName =
       feature?.properties?.adm1_name ??
       feature?.properties?.NAME_1 ??
+      feature?.properties?.ADM1_EN ?? // Name of the province in English
       feature?.properties?.name ??
       'Province';
 
@@ -398,7 +373,7 @@ useEffect(() => {
       try {
         const b = (geoJsonLayerRef.current as any)?.getBounds?.();
         if (b?.isValid()) map.fitBounds(b, { padding: [20, 20] });
-      } catch {}
+      } catch { }
     }, 0);
   }, [data, map]);
 
@@ -449,26 +424,32 @@ useEffect(() => {
         style={style}
         onEachFeature={onEachFeature}
       />
-      {/* Region markers from backend (optional) */}
-      {/* {regions.map((region) => {
+
+
+      {regions.map((region) => {
         if (region.lat && region.long) {
-          const drcFlagIcon = L.icon({
-            iconUrl: drcFlag,
-            iconSize: [64, 40],
-            iconAnchor: [32, 40],
-            popupAnchor: [0, -10],
-          });
+          // const drcFlagIcon = L.icon({
+          //   iconUrl: drcFlag,
+          //   iconSize: [64, 40],
+          //   iconAnchor: [32, 40],
+          //   popupAnchor: [0, -10],
+          // });
 
           const provinceName = region.province_name || '';
           const displayTitle = provinceName
             ? `${region.region_name} - ${provinceName}`
             : region.region_name;
 
+          const latNum = parseFloat(region.lat);
+          const lngNum = parseFloat(region.long);
+
           return (
             <Marker
               key={region.id}
-              position={[parseFloat(region.lat), parseFloat(region.long)]}
-              icon={drcFlagIcon}
+              position={[latNum, lngNum]}
+              icon={pinIcon}
+
+
               eventHandlers={{
                 click: () => {
                   onOpenDetail(
@@ -479,61 +460,21 @@ useEffect(() => {
                   );
                 },
               }}
-            />
+            >
+              <Tooltip direction="top" sticky>
+                <div>
+                  Lat: {Number.isFinite(latNum) ? latNum.toFixed(4) : region.lat}
+                  <br />
+                  Long: {Number.isFinite(lngNum) ? lngNum.toFixed(4) : region.long}
+                  <br />
+                  Region ID: {region.region_id}
+                </div>
+              </Tooltip>
+            </Marker>
           );
         }
         return null;
-      })} */}
-
-      {regions.map((region) => {
-  if (region.lat && region.long) {
-    // const drcFlagIcon = L.icon({
-    //   iconUrl: drcFlag,
-    //   iconSize: [64, 40],
-    //   iconAnchor: [32, 40],
-    //   popupAnchor: [0, -10],
-    // });
-
-    const provinceName = region.province_name || '';
-    const displayTitle = provinceName
-      ? `${region.region_name} - ${provinceName}`
-      : region.region_name;
-
-    const latNum = parseFloat(region.lat);
-    const lngNum = parseFloat(region.long);
-
-    return (
-      <Marker
-        key={region.id}
-        position={[latNum, lngNum]}
-        icon={pinIcon}
-
-        
-        eventHandlers={{
-          click: () => {
-            onOpenDetail(
-              displayTitle,
-              provinceName,
-              region.region_id,
-              region.summary
-            );
-          },
-        }}
-      >
-        <Tooltip direction="top" sticky>
-          <div>
-            Lat: {Number.isFinite(latNum) ? latNum.toFixed(4) : region.lat}
-            <br />
-            Long: {Number.isFinite(lngNum) ? lngNum.toFixed(4) : region.long}
-            <br />
-            Region ID: {region.region_id}
-          </div>
-        </Tooltip>
-      </Marker>
-    );
-  }
-  return null;
-})}
+      })}
 
     </>
   );
@@ -547,7 +488,6 @@ const formatSummary = (text?: string) => {
   return formatted;
 };
 /* ---------------- Right Panel Component ---------------- */
-/* ---------------- Right Panel Component ---------------- */
 const RightPanel: React.FC<{
   title?: string;
   summary?: string;
@@ -557,7 +497,7 @@ const RightPanel: React.FC<{
   onBack: () => void;
   onAskMore: () => void;
 }> = ({ title, summary, showChat, regionId, sessionId, onBack, onAskMore }) => {
-  
+
   // Convert \n to <br> tags for proper line breaks
 
 
@@ -570,7 +510,7 @@ const RightPanel: React.FC<{
 
       {!showChat ? (
         <>
-          <div 
+          <div
             className="panel-body"
             dangerouslySetInnerHTML={{ __html: formatSummary(summary) }}
           />
@@ -605,7 +545,7 @@ const MapPage: React.FC = () => {
   const [regions, setRegions] = useState<Region[]>([]);
 
   // Province index
-  const provinceIndex = useMemo(() => buildProvinceIndex(DRC_CONGO as any), []);
+  const provinceIndex = useMemo(() => buildProvinceIndex(SA as any), []);
 
   // Ambiguity choices for quick-replies in chat
   const [pendingProvinceChoices, setPendingProvinceChoices] = useState<string[] | null>(null);
@@ -613,7 +553,7 @@ const MapPage: React.FC = () => {
   // Handle chat intent → update mini-map highlight and (optionally) region panel
   const handleProvinceIntent = (freeText: string): ProvinceDetection => {
     const res = detectProvinceFromText(freeText, provinceIndex);
-      console.log('[select]', freeText);
+    console.log('[select]', freeText);
 
 
     if (res.kind === 'matched') {
@@ -749,10 +689,10 @@ const MapPage: React.FC = () => {
           <p>Click any region to learn more</p>
         </div>
         <MapContainer
-          center={[-2.5, 23.5] as LatLngExpression}
+          center={[-28.5, 24.5] as LatLngExpression}
           zoom={5}
           style={{ height: '100%', width: '100%' }}
-          maxBounds={[[-13.5, 12.0], [5.5, 31.5]]}
+          maxBounds={[[-35.5, 15.0], [-21.5, 33.5]]}
           minZoom={5}
           maxZoom={10}
           dragging={true}
@@ -769,21 +709,21 @@ const MapPage: React.FC = () => {
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution="&copy; CARTO & OpenStreetMap contributors"
-                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+                bounds={[[-35.5, 15.0], [-21.5, 33.5]]}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="OpenStreetMap">
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
-                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+                bounds={[[-35.5, 15.0], [-21.5, 33.5]]}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satellite">
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 attribution="&copy; Esri"
-                bounds={[[-13.5, 12.0], [5.5, 31.5]]}
+                bounds={[[-35.5, 15.0], [-21.5, 33.5]]}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
@@ -798,7 +738,7 @@ const MapPage: React.FC = () => {
           {/* Left Mini Map */}
           <div className="mini-map-container">
             <MapContainer
-              center={[-2.5, 23.5] as LatLngExpression}
+              center={[-28.5, 24.5] as LatLngExpression}
               zoom={5}
               className="mini-map"
               zoomControl={false}
@@ -823,10 +763,10 @@ const MapPage: React.FC = () => {
 
               {!showChat ? (
                 <>
-<div 
-  className="panel-body"
-  dangerouslySetInnerHTML={{ __html: formatSummary(detail.summary) }}
-/>
+                  <div
+                    className="panel-body"
+                    dangerouslySetInnerHTML={{ __html: formatSummary(detail.summary) }}
+                  />
                   <div className="panel-footer">
                     <button className="panel-btn panel-btn-primary" onClick={() => openChatInPanel()}>
                       Ask me more
