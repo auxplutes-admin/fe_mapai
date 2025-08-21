@@ -1,6 +1,6 @@
 import { MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import KONGO_FLAG from "@/assets/kongo-flag.png";
+import SA_FLAG from "@/assets/SA-FLAG.png";
 
 const handleClick = () => {
   window.location.href = "/dashboard/map";
@@ -36,8 +36,8 @@ export const Hero = () => (
         {/* Right Column: Flag */}
         <div className="flex items-center justify-center">
           <img
-            src={KONGO_FLAG}
-            alt="DRC Flag"
+            src={SA_FLAG}
+            alt="SA Flag"
             className="w-48 md:w-60 lg:w-72 h-auto object-contain rounded-md shadow-xl"
           />
         </div>

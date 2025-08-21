@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SESSION_COOKIE_NAME } from "@/constant";
-import GLOBE_LOGO from "@/assets/globe-logo.png";
+import SME_LOGO from "@/assets/SME.png";
 
 export const Navbar = () => {
     const navigationItems = [
@@ -33,12 +33,12 @@ export const Navbar = () => {
                 {/* Logo Section - Now aligned to the left */}
               <div className="flex flex-col items-center">
                     <img
-                        src={GLOBE_LOGO}
-                        alt="Globe Logo"
+                        src={SME_LOGO}
+                        alt="SME Logo"
                         className="w-12 h-12 object-contain"
                     />
                     <span className="text-sm font-medium text-white">
-                        Geoanalysis.ai
+                        SCHOOL OF MINING ENGINEERING
                     </span>
                 </div>
                 </div>
