@@ -2,7 +2,7 @@
 
 /* THEME */
 :root {
-  --theme: #450275;     /* backdrop + accents - KEEP CONSTANT */
+  --theme: #002395;     /* backdrop + accents - KEEP CONSTANT */
   --theme-2: #F357A8;   /* highlight color */
   --panel: #e3e3e3;     /* card surfaces */
   --border-grey: #9AA0A6;
@@ -16,7 +16,7 @@
   height: 100%;
   overflow: hidden;
   display: flex;
-  background: linear-gradient(to bottom right, #160041, #450275, #F357A8) !important; /* CONSTANT purple background */
+  background: linear-gradient(to bottom right, #160041, #002395, #F357A8) !important; /* CONSTANT purple background */
 }
 
 /* Main map container - takes full width of its parent */
@@ -86,7 +86,7 @@
   flex-direction: column;
   padding: 32px 40px;
   gap: 16px;
-  background: #280145;
+  background: #00196d;
   position: relative;
   box-sizing: border-box;
   overflow: hidden; /* Prevent content from going outside */

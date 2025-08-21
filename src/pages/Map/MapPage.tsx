@@ -22,8 +22,8 @@ import { getAllRegions } from '@/api';
 import './Map.css';
 
 // ---------- THEME ----------
-const THEME = '#450275';       // global purple (backdrop + accents)
-const THEME_2 = '#007749';     // highlight color
+const THEME = '#002395';       // global purple (backdrop + accents)
+const THEME_2 = '#0737d4ff';     // highlight color
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
@@ -248,7 +248,7 @@ const DRCProvincesLayer: React.FC<{
   const [regions, setRegions] = useState<Region[]>([]);
   const geoJsonLayerRef = useRef<L.GeoJSON<any> | null>(null);
   const labelMarkersRef = useRef<L.Marker[]>([]);
-  const pinIcon = useMemo(() => makePinIcon('#450275'), []); // pick any hex
+  const pinIcon = useMemo(() => makePinIcon('#002395'), []); // pick any hex
 
   useEffect(() => {
     (async () => {

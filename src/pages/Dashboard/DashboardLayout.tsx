@@ -445,7 +445,7 @@ export default function DashboardLayout() {
     );
   };
 
-  const THEME = "#2e014a"; // Updated to match map theme
+  const THEME = "#02144fff"; // Updated to match map theme
 
   // Group sessions by region (stable across renders)
   const regionGroups: RegionGroup[] = useMemo(() => {

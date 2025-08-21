@@ -5,9 +5,9 @@ import { Send, MessageSquare, Sparkles, Cpu, MapPin, RefreshCw, Download } from 
 import { sendChatMessage, chatBySessionId } from '@/api';
 import { v4 as uuidv4 } from 'uuid';
 
-const THEME = '#450275';
-const BG_DARK = '#2e014a';     // messages area background
-const CARD_DARK = '#22013a';   // bubble bg for AI + input bar
+const THEME = '#002395';
+const BG_DARK = '#010e3aff';     // messages area background
+const CARD_DARK = '#02134eff';   // bubble bg for AI + input bar
 const BORDER = 'rgba(255,255,255,0.12)';
 const TEXT_DIM = 'rgba(255,255,255,0.7)';
 
