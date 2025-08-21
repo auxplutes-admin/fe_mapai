@@ -165,7 +165,7 @@
 //         {/* Header */}
 //         <div className="flex items-center justify-between p-4 border-b border-white/10">
 //           <div className="flex items-center gap-2">
-//             <span className="text-sm font-semibold text-white">DRC</span>
+//             <span className="text-sm font-semibold text-white">SA</span>
 //           </div>
 //         </div>
 
@@ -518,7 +518,7 @@ export default function DashboardLayout() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white">DRC</span>
+            <span className="text-sm font-semibold text-white">SA</span>
           </div>
         </div>
 

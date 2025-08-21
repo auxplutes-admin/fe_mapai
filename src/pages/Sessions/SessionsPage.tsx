@@ -126,7 +126,7 @@ const DetailModal: React.FC<{
     return (
       <div className="detail-backdrop">
         <div className={`detail-card ${showChat ? 'is-chat' : ''}`}>
-          {/* Left: mini DRC map */}
+          {/* Left: mini SA map */}
           <div className="detail-left" style={{ background: PANEL }}>
             <MapContainer
               center={[-2.5, 23.5] as LatLngExpression}
@@ -287,7 +287,7 @@ const DRCProvincesLayer: React.FC<{
     });
   };
 
-  // fit to DRC on mount
+  // fit to SA on mount
   useEffect(() => {
     if (!data) return;
     setTimeout(() => {
@@ -298,7 +298,7 @@ const DRCProvincesLayer: React.FC<{
     }, 0);
   }, [data, map]);
 
-  // World mask in theme color (hides world outside DRC)
+  // World mask in theme color (hides world outside SA)
   const maskData = useMemo(() => {
     if (!data) return null;
     const worldRing = [

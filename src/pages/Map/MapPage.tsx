@@ -377,7 +377,7 @@ const DRCProvincesLayer: React.FC<{
     }, 0);
   }, [data, map]);
 
-  // World mask to retain purple around DRC
+  // World mask to retain purple around SA
   const maskData = useMemo(() => {
     if (!data) return null;
     const worldRing = [

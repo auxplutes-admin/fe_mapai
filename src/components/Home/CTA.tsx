@@ -7,7 +7,7 @@ const CTA: React.FC = () => {
       <div className="bg-[#2B0A4B] rounded-2xl shadow-xl flex flex-col md:flex-row max-w-7xl w-full p-8 md:p-12 gap-8 md:gap-12">
         {/* Left: Map */}
         <div className="flex-1 flex justify-center items-center mb-8 md:mb-0 md:mr-8">
-          {/* SVG Map of DRC with Kongo Central highlighted */}
+          {/* SVG Map of SA with Kongo Central highlighted */}
           <img src={KONGO_MAP} alt="Kongo Map" className="w-full h-full" />
         </div>
         {/* Right: Text */}
@@ -24,10 +24,10 @@ const CTA: React.FC = () => {
               The provincial capital is Matadi, a major port city on the Congo River, while Boma, the former capital, is another important urban center. Kongo Central covers an area of about 53,920 km² and has a population of over 5 million people, predominantly from the Bakongo ethnic group.
             </p>
             <p className="text-white/70 text-sm mb-2">
-              The province is rich in natural resources, including oil, limestone, and agricultural products such as cassava, bananas, and palm oil. Its strategic location makes it a vital gateway for trade, with the Matadi Bridge and the seaport facilitating much of the DRC's imports and exports.
+              The province is rich in natural resources, including oil, limestone, and agricultural products such as cassava, bananas, and palm oil. Its strategic location makes it a vital gateway for trade, with the Matadi Bridge and the seaport facilitating much of the SA's imports and exports.
             </p>
             <p className="text-white/70 text-sm">
-              Kongo Central is also known for its cultural heritage, vibrant music, and historical sites, including the Cataracts of the Congo River and remnants of colonial architecture. The province plays a crucial role in the economic and cultural landscape of the DRC.
+              Kongo Central is also known for its cultural heritage, vibrant music, and historical sites, including the Cataracts of the Congo River and remnants of colonial architecture. The province plays a crucial role in the economic and cultural landscape of the SA.
             </p>
           </div>
           <div className="flex justify-center mt-8">

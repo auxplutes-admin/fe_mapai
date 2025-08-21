@@ -19,7 +19,7 @@ export const Hero = () => (
           </h1>
 
           <p className="text-base md:text-lg text-white/80 max-w-xl mx-auto md:mx-0">
-            Explore an intelligent, interactive map of the DRC mining landscape powered by real-time insights and conversational AI.
+            Explore an intelligent, interactive map of the SA mining landscape powered by real-time insights and conversational AI.
           </p>
 
           <div className="pt-2 flex items-center justify-center md:justify-start">
