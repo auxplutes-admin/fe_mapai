@@ -516,11 +516,22 @@ export default function DashboardLayout() {
         style={{ backgroundColor: THEME }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        {/* <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-white">DRC</span>
           </div>
-        </div>
+        </div> */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+  <div className="flex items-center gap-2">
+    <a
+      href="/dashboard/map"
+      className="text-sm font-semibold text-white hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-sm"
+      aria-label="Go to home"
+    >
+      DRC
+    </a>
+  </div>
+</div>
 
         {/* Navigation */}
         <nav className={`flex-1 flex flex-col p-3`} style={{ backgroundColor: THEME }}>
