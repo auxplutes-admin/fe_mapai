@@ -15,7 +15,7 @@ export const Hero = () => (
         <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left space-y-6">
           <h1 className="text-xl md:text-3xl lg:text-4xl font-bold leading-tight">
             <span className="block"> Welcome to 
-              <br /> The AI-verse of DRC mining</span>
+              <br /> The AI-verse of South African mining</span>
           </h1>
 
           <p className="text-base md:text-lg text-white/80 max-w-xl mx-auto md:mx-0">
@@ -26,7 +26,7 @@ export const Hero = () => (
             <Button
               size="lg"
               onClick={handleClick}
-              className="bg-[#3B1687] hover:bg-[#2D0A4E] text-white text-xl md:text-2xl px-12 md:px-16 py-6 md:py-7 rounded-2xl shadow-xl transition-transform duration-300 hover:scale-[1.03] flex items-center gap-3"
+              className="bg-[#002395] hover:bg-[#007749] text-white text-xl md:text-2xl px-12 md:px-16 py-6 md:py-7 rounded-2xl shadow-xl transition-transform duration-300 hover:scale-[1.03] flex items-center gap-3"
             >
               Enter <MoveRight className="w-6 h-6 md:w-7 md:h-7" />
             </Button>

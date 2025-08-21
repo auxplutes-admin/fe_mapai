@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SESSION_COOKIE_NAME } from "@/constant";
 import SME_LOGO from "@/assets/SME.png";
+import UOTWAJ from "@/assets/UOTWAJ.png";
+
 
 export const Navbar = () => {
     const navigationItems = [
@@ -41,7 +43,14 @@ export const Navbar = () => {
                         SCHOOL OF MINING ENGINEERING
                     </span>
                 </div>
+                <div className="flex flex-col items-center">
+                    <img
+                        src={UOTWAJ}
+                        alt="UOTWAJ Logo"
+                        className="w-18 h-12 object-contain"
+                    />
                 </div>
+            </div>
         </header>
     );
 };

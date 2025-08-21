@@ -23,7 +23,7 @@ import './Map.css';
 
 // ---------- THEME ----------
 const THEME = '#450275';       // global purple (backdrop + accents)
-const THEME_2 = '#F357A8';     // highlight color
+const THEME_2 = '#007749';     // highlight color
 const PANEL = '#2e014a';       // panel surface (split card background)
 const BORDER_GREY = '#9AA0A6'; // province border
 
