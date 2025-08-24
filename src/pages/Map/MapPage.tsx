@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MapContainer,
@@ -6,8 +5,7 @@ import {
   useMap,
   LayersControl,
   GeoJSON,
-  Marker,
-  Tooltip
+  Marker
 } from 'react-leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -22,15 +20,15 @@ import { getAllRegions } from '@/api';
 import './Map.css';
 
 // ---------- THEME ----------
-const THEME = '#002395';       // global purple (backdrop + accents)
-const THEME_2 = '#0737d4ff';     // highlight color
-const PANEL = '#2e014a';       // panel surface (split card background)
-const BORDER_GREY = '#9AA0A6'; // province border
+const THEME = '#002395';
+const THEME_2 = '#0737d4ff';
+const PANEL = '#2e014a';
+const BORDER_GREY = '#9AA0A6';
 
-// A reusable, colorable pin (no images)
+// A reusable, colorable pin (kept, but we no longer use it for backend markers)
 const makePinIcon = (fill = THEME_2, stroke = '#ffffff') =>
   L.divIcon({
-    className: 'custom-pin', // optional
+    className: 'custom-pin',
     html: `
       <svg viewBox="0 0 24 36" width="28" height="42" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 1
@@ -47,9 +45,8 @@ const makePinIcon = (fill = THEME_2, stroke = '#ffffff') =>
     popupAnchor: [0, -36],
   });
 
-
-// Fix Leaflet default marker icon
-// @ts-ignore
+// Fix Leaflet default marker icon (we still need Marker for label divIcons)
+/// @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -72,14 +69,13 @@ interface Region {
 const normalize = (s?: string) =>
   (s || '')
     .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')  // remove combining marks
-    .replace(/[–—−‐-‒﹘﹣－]/g, '-')   // unify dash types
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[–—−‐-‒﹘﹣－]/g, '-')
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, ' ')    // <- strip punctuation to spaces (handles ?!.,"'`() etc.)
-    .replace(/\s+/g, ' ')             // collapse spaces
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
-// Canonical province names list (as in SA 9 provinces)
 const CANONICAL_PROVINCES = [
   'Eastern Cape',
   'Free State',
@@ -92,7 +88,6 @@ const CANONICAL_PROVINCES = [
   'Western Cape',
 ];
 
-// Common aliases (no need to be exhaustive — add as needed)
 const PROVINCE_ALIASES: Record<string, string[]> = {
   'Gauteng': ['johannesburg', 'pretoria'],
   'Western Cape': ['cape town'],
@@ -106,7 +101,7 @@ const PROVINCE_ALIASES: Record<string, string[]> = {
 };
 
 const buildProvinceIndex = (geo: any) => {
-  const idx = new Map<string, string>(); // normalized key -> canonical name from GeoJSON
+  const idx = new Map<string, string>();
   const names = new Set<string>();
 
   geo?.features?.forEach((f: any) => {
@@ -114,16 +109,13 @@ const buildProvinceIndex = (geo: any) => {
     if (n) names.add(n);
   });
 
-  // Direct names from GeoJSON
   for (const n of names) idx.set(normalize(n), n);
 
-  // Add aliases pointing to canonical names (prefer exact name from GeoJSON if present)
   Object.entries(PROVINCE_ALIASES).forEach(([canon, list]) => {
     const canonFromGeo = [...names].find(n => normalize(n) === normalize(canon)) ?? canon;
     list.forEach(a => idx.set(normalize(a), canonFromGeo));
   });
 
-  // Ensure all canonical names resolve even if GeoJSON casing varies
   CANONICAL_PROVINCES.forEach(c => {
     const hit = [...names].find(n => normalize(n) === normalize(c)) ?? c;
     idx.set(normalize(c), hit);
@@ -132,11 +124,18 @@ const buildProvinceIndex = (geo: any) => {
   return idx;
 };
 
-// Province detection result
+// Province detection (unchanged)
 type ProvinceDetection =
   | { kind: 'none' }
   | { kind: 'matched'; province: string }
   | { kind: 'ambiguous'; options: string[] };
+
+// ---------------- Label position overrides ----------------
+// Hard-coded label coordinates for tricky shapes.
+// Western Cape gets a corrected placement.
+const LABEL_OVERRIDES: Record<string, { lat: number; lng: number }> = {
+  [normalize('Western Cape')]: { lat: -33.3, lng: 20.5 },
+};
 
 const detectProvinceFromText = (text: string, idx: Map<string, string>): ProvinceDetection => {
   const words = normalize(text).split(' ').filter(Boolean);
@@ -151,19 +150,10 @@ const detectProvinceFromText = (text: string, idx: Map<string, string>): Provinc
     if (m) hits.push(m);
   }
 
-  console.log(words, grams, hits)
-  // De-dup
   const uniq = Array.from(new Set(hits));
-  console.log(uniq)
   if (uniq.length === 1) return { kind: 'matched', province: uniq[0] };
+  if (uniq.length > 1) return { kind: 'ambiguous', options: uniq.sort((a, b) => a.localeCompare(b)) };
 
-  if (uniq.length > 1) {
-    // Special case: plain "kasai" hits both Kasai and Kasai-Central/Oriental
-    // Offer sorted unique list so user can choose.
-    return { kind: 'ambiguous', options: uniq.sort((a, b) => a.localeCompare(b)) };
-  }
-
-  // If user typed a single-token province that isn't in GeoJSON (e.g., spelling), check fuzzy via startsWith
   if (words.length === 1) {
     const token = words[0];
     const options = CANONICAL_PROVINCES
@@ -193,12 +183,11 @@ const MapController: React.FC = () => {
 const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince }) => {
   const map = useMap();
 
-
   const style = (feature: any): PathOptions => {
     const name =
       feature?.properties?.adm1_name ??
       feature?.properties?.NAME_1 ??
-      feature?.properties?.ADM1_EN ?? // Name of the province in English
+      feature?.properties?.ADM1_EN ??
       feature?.properties?.name ??
       '';
     const isSelected =
@@ -217,15 +206,13 @@ const MiniMapDRC: React.FC<{ selectedProvince?: string }> = ({ selectedProvince 
     const northEast = L.latLng(-21.5, 33.5);
     map.fitBounds(L.latLngBounds(southWest, northEast), { padding: [30, 30] });
 
-    // Lock the mini map interactions
+    // Lock the mini map interactions and controls
     map.dragging.disable();
     map.touchZoom.disable();
     map.doubleClickZoom.disable();
     map.scrollWheelZoom.disable();
     map.boxZoom.disable();
     map.keyboard.disable();
-
-    // Hide controls
     const container = (map as any)._controlContainer;
     if (container) container.style.display = 'none';
   }, [map]);
@@ -248,7 +235,7 @@ const DRCProvincesLayer: React.FC<{
   const [regions, setRegions] = useState<Region[]>([]);
   const geoJsonLayerRef = useRef<L.GeoJSON<any> | null>(null);
   const labelMarkersRef = useRef<L.Marker[]>([]);
-  const pinIcon = useMemo(() => makePinIcon('#002395'), []); // pick any hex
+  useMemo(() => makePinIcon('#002395'), []); // kept for completeness, not used for pins now
 
   useEffect(() => {
     (async () => {
@@ -289,7 +276,23 @@ const DRCProvincesLayer: React.FC<{
     fillOpacity: 0.9,
   });
 
-  // Add interactive province label markers with hover tooltips
+  // Province name helper (normalize Western Cape variations if present)
+  const resolveProvinceName = (feature: any) => {
+    let provinceName =
+      feature?.properties?.ADM1_EN ??
+      feature?.properties?.adm1_name ??
+      feature?.properties?.NAME_1 ??
+      feature?.properties?.name ??
+      'Province';
+
+    // If SA.json contains "Western Cape Province" or variations, unify label text
+    if (normalize(provinceName) === normalize('Western Cape Province')) {
+      provinceName = 'Western Cape';
+    }
+    return provinceName;
+  };
+
+  // Add static province label markers (NO hover, NO tooltips)
   useEffect(() => {
     // Clear existing labels
     labelMarkersRef.current.forEach(marker => marker.remove());
@@ -298,22 +301,16 @@ const DRCProvincesLayer: React.FC<{
     if (geoJsonLayerRef.current) {
       geoJsonLayerRef.current.eachLayer((layer: any) => {
         const feature = layer.feature;
-        const provinceName =
-          feature?.properties?.adm1_name ??
-          feature?.properties?.NAME_1 ??
-          feature?.properties?.ADM1_EN ?? // Name of the province in English
-          feature?.properties?.name ??
-          'Province';
+        const provinceName = resolveProvinceName(feature);
 
-        const center = layer.getBounds().getCenter();
+        // Default center
+        let center = layer.getBounds().getCenter();
 
-        // Try to find a matching backend region for a stable regionId
-        const matched = regions.find(
-          (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
-        );
-
-        // Fallback if no backend region exists
-        const regionId = matched?.region_id ?? normalize(provinceName).replace(/\s+/g, '-');
+        // Override if provided (e.g., Western Cape)
+        const override = LABEL_OVERRIDES[normalize(provinceName)];
+        if (override) {
+          center = L.latLng(override.lat, override.lng);
+        }
 
         const label = L.divIcon({
           className: 'region-label',
@@ -322,26 +319,21 @@ const DRCProvincesLayer: React.FC<{
           iconAnchor: [50, 20],
         });
 
-        const labelMarker = L.marker(center, { icon: label, interactive: true }).addTo(map);
-
-        // Show lat/lng + regionId on hover
-        labelMarker.bindTooltip(
-          `Lat: ${center.lat.toFixed(4)}<br/>Lng: ${center.lng.toFixed(4)}<br/>Region ID: ${regionId}`,
-          { sticky: true, direction: 'top' }
-        );
+        // Non-interactive label marker (no hover, no click)
+        const labelMarker = L.marker(center, {
+          icon: label,
+          interactive: false,
+          bubblingMouseEvents: false,
+          keyboard: false,
+        }).addTo(map);
 
         labelMarkersRef.current.push(labelMarker);
       });
     }
-  }, [map, data, regions]); // <-- include regions
+  }, [map, data]); // NOTE: no 'regions' dependency; labels independent from backend now
 
   const onEachFeature = (feature: any, layer: L.Layer) => {
-    const provinceName =
-      feature?.properties?.adm1_name ??
-      feature?.properties?.NAME_1 ??
-      feature?.properties?.ADM1_EN ?? // Name of the province in English
-      feature?.properties?.name ??
-      'Province';
+    const provinceName = resolveProvinceName(feature);
 
     const region = regions.find(
       (r) => r.province_name && normalize(r.province_name) === normalize(provinceName)
@@ -350,13 +342,13 @@ const DRCProvincesLayer: React.FC<{
     const regionId = region?.region_id || provinceName.toLowerCase();
     const summary = region?.summary;
 
+    // Remove hover handlers entirely; keep only click
     layer.on({
-      mouseover: (e: any) => e.target.setStyle({ weight: 2, fillOpacity: 1 }),
-      mouseout: (e: any) => geoJsonLayerRef.current?.resetStyle(e.target),
       click: () => {
         const title = region?.province_name
           ? `${region.region_name} - ${region.province_name}`
           : provinceName;
+
         onOpenDetail(
           title,
           provinceName,
@@ -407,7 +399,6 @@ const DRCProvincesLayer: React.FC<{
 
   if (!data) return null;
 
-
   return (
     <>
       {maskData && (
@@ -425,68 +416,16 @@ const DRCProvincesLayer: React.FC<{
         onEachFeature={onEachFeature}
       />
 
-
-      {regions.map((region) => {
-        if (region.lat && region.long) {
-          // const drcFlagIcon = L.icon({
-          //   iconUrl: drcFlag,
-          //   iconSize: [64, 40],
-          //   iconAnchor: [32, 40],
-          //   popupAnchor: [0, -10],
-          // });
-
-          const provinceName = region.province_name || '';
-          const displayTitle = provinceName
-            ? `${region.region_name} - ${provinceName}`
-            : region.region_name;
-
-          const latNum = parseFloat(region.lat);
-          const lngNum = parseFloat(region.long);
-
-          return (
-            <Marker
-              key={region.id}
-              position={[latNum, lngNum]}
-              icon={pinIcon}
-
-
-              eventHandlers={{
-                click: () => {
-                  onOpenDetail(
-                    displayTitle,
-                    provinceName,
-                    region.region_id,
-                    region.summary
-                  );
-                },
-              }}
-            >
-              <Tooltip direction="top" sticky>
-                <div>
-                  Lat: {Number.isFinite(latNum) ? latNum.toFixed(4) : region.lat}
-                  <br />
-                  Long: {Number.isFinite(lngNum) ? lngNum.toFixed(4) : region.long}
-                  <br />
-                  Region ID: {region.region_id}
-                </div>
-              </Tooltip>
-            </Marker>
-          );
-        }
-        return null;
-      })}
-
+      {/* NOTE: Backend region pins removed entirely as requested */}
     </>
   );
 };
 
 const formatSummary = (text?: string) => {
-  console.log('Original text:', text);
   if (!text) return 'No summary available for this region yet.';
-  const formatted = text.replace(/\\n/g, '<br />'); // Note the double backslash
-  console.log('Formatted text:', formatted);
-  return formatted;
+  return text.replace(/\\n/g, '<br />');
 };
+
 /* ---------------- Right Panel Component ---------------- */
 const RightPanel: React.FC<{
   title?: string;
@@ -497,10 +436,6 @@ const RightPanel: React.FC<{
   onBack: () => void;
   onAskMore: () => void;
 }> = ({ title, summary, showChat, regionId, sessionId, onBack, onAskMore }) => {
-
-  // Convert \n to <br> tags for proper line breaks
-
-
   return (
     <div className="right-panel">
       <div className="panel-header">
@@ -553,12 +488,9 @@ const MapPage: React.FC = () => {
   // Handle chat intent → update mini-map highlight and (optionally) region panel
   const handleProvinceIntent = (freeText: string): ProvinceDetection => {
     const res = detectProvinceFromText(freeText, provinceIndex);
-    console.log('[select]', freeText);
-
 
     if (res.kind === 'matched') {
       const province = res.province;
-      console.log('[select]', res.province);
       setDetail(prev => ({ ...prev, selectedProvince: province }));
 
       // Optionally sync right-panel with backend region record (if any)
@@ -632,7 +564,7 @@ const MapPage: React.FC = () => {
     })();
   }, []);
 
-  // Session init
+  // Session init (base session for non-click flows)
   useEffect(() => {
     if (!sessionId) {
       let stored = localStorage.getItem('chat_session_id');
@@ -650,9 +582,14 @@ const MapPage: React.FC = () => {
     regionId: string,
     summary?: string
   ) => {
+    // ALWAYS start a NEW session id on province click
+    const newSessionId = uuidv4();
+    localStorage.setItem('chat_session_id', newSessionId);
+    setSessionId(newSessionId);
+
     setDetail({ title, selectedProvince, id: regionId, summary });
     setIsSplit(true);
-    setShowChat(false);
+    setShowChat(true);
 
     // Clear URL params when opening from map click
     const url = new URL(window.location.href);
@@ -684,7 +621,6 @@ const MapPage: React.FC = () => {
     <div className="map-page-root">
       {/* Main Map Container */}
       <div className={`map-container ${isSplit ? 'is-hidden' : ''}`}>
-        {/* Hint badge */}
         <div className="map-hint">
           <p>Click any region to learn more</p>
         </div>
@@ -761,19 +697,7 @@ const MapPage: React.FC = () => {
                 <button className="panel-btn secondary" onClick={handleBackToMap}>Back</button>
               </div>
 
-              {!showChat ? (
-                <>
-                  <div
-                    className="panel-body"
-                    dangerouslySetInnerHTML={{ __html: formatSummary(detail.summary) }}
-                  />
-                  <div className="panel-footer">
-                    <button className="panel-btn panel-btn-primary" onClick={() => openChatInPanel()}>
-                      Ask me more
-                    </button>
-                  </div>
-                </>
-              ) : (
+              {showChat && (
                 <div className="panel-chat-container">
                   <ChatPlayground
                     regionId={detail.id}

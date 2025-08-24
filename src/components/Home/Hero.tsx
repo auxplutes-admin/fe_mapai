@@ -1,6 +1,7 @@
 import { MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SA_FLAG from "@/assets/SA-FLAG.png";
+import SME_LOGO from "@/assets/SME.png";
 
 const handleClick = () => {
   window.location.href = "/dashboard/map";
@@ -36,7 +37,7 @@ export const Hero = () => (
         {/* Right Column: Flag */}
         <div className="flex items-center justify-center">
           <img
-            src={SA_FLAG}
+            src={SME_LOGO}
             alt="SA Flag"
             className="w-48 md:w-60 lg:w-72 h-auto object-contain rounded-md shadow-xl"
           />

@@ -16,7 +16,7 @@
   height: 100%;
   overflow: hidden;
   display: flex;
-  background: linear-gradient(to bottom right, #160041, #002395, #F357A8) !important; /* CONSTANT purple background */
+  background: linear-gradient(to bottom right, #160041, #002395, #007749) !important; /* CONSTANT purple background */
 }
 
 /* Main map container - takes full width of its parent */

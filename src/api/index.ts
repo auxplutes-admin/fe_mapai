@@ -40,7 +40,7 @@ export const sendChatMessage = async(payload:{
   question: string,
   session_id: string
 })=>{
-  const response = await axios.post("https://mapai-api.enttlevo.online/chat", payload);
+  const response = await axios.post("https://sa-mapai-api.enttlevo.online/chat_sa", payload);
   return response.data;
 }
 
@@ -48,19 +48,19 @@ export const sendChatMessage = async(payload:{
 export const chatBySessionId = async(payload:{
   session_id: string
 })=>{
-  const response = await axios.post("https://x3kb-thkl-gi2q.n7e.xano.io/api:hWPNd5f8/chat_by_session_id", payload);
+  const response = await axios.post("https://x3kb-thkl-gi2q.n7e.xano.io/api:cWjxJO0v/chat_by_session_id_sa", payload);
   return response.data;
 }
 
 // get all regions
 export const getAllRegions = async()=>{
-  const response = await axios.get("https://x3kb-thkl-gi2q.n7e.xano.io/api:hWPNd5f8/get_region");
+  const response = await axios.get("https://x3kb-thkl-gi2q.n7e.xano.io/api:cWjxJO0v/get_region_sa");
   return response.data;
 }
 
 // get all sessions
 export const getAllSessions = async()=>{
-  const response = await axios.post("https://x3kb-thkl-gi2q.n7e.xano.io/api:hWPNd5f8/get_session");
+  const response = await axios.post("https://x3kb-thkl-gi2q.n7e.xano.io/api:cWjxJO0v/get_session_sa");
   return response.data;
 }
 

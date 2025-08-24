@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const THEME = '#002395';
 const BG_DARK = '#010e3aff';     // messages area background
-const CARD_DARK = '#02134eff';   // bubble bg for AI + input bar
+const CARD_DARK = '#00229cff';   // bubble bg for AI + input bar
 const BORDER = 'rgba(255,255,255,0.12)';
 const TEXT_DIM = 'rgba(255,255,255,0.7)';
 
@@ -159,7 +159,7 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
 
     try {
       const response = await sendChatMessage({
-        regionId: regionId ?? 'no-region',
+        regionId: (regionId ?? "no-region").replace(/\s+/g, "_"),
         question: textToSend,
         session_id: sessionId,
       });
@@ -408,11 +408,11 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
                   <div className="relative group">
                     <div
                       className={['rounded-2xl p-4 shadow-lg whitespace-pre-line leading-relaxed'].join(' ')}
-                      style={{
-                        background: mine ? 'linear-gradient(135deg, #6a22c1, #450275)' : CARD_DARK,
-                        color: 'white',
-                        border: `1px solid ${BORDER}`,
-                      }}
+style={{
+  background: CARD_DARK,
+  color: 'white',
+  border: `1px solid ${BORDER}`,
+}}
                     >
                       <p className="text-[14px]">{m.text}</p>
                       <p className="text-[11px] mt-2" style={{ color: TEXT_DIM }}>
@@ -433,7 +433,8 @@ const ChatPlayground: React.FC<ChatPlaygroundProps> = ({
                   </div>
 
                   {mine && (
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6a22c1, #450275)', border: `1px solid ${BORDER}` }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ 
+                      background: CARD_DARK, border: `1px solid ${BORDER}` }}>
                       <span className="text-white text-xs font-medium">U</span>
                     </div>
                   )}
